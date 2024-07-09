@@ -75,13 +75,11 @@ The `[]` operator can be negated by itself.
 `[[variable]]` will be the variable's value, not the adress.
 
 ```ent
-int32 [pointer]; // Defines a global variable of an uninitilised `int32`
-
-//int32 [pointerErr] = 5; This is illegal as you can not assign defualt values to global variables
+int32 [pointer] = 5; // Defines a global variable of an uninitilised `int32`
 
 function someFunctions(void) -> void
 {
-    int32 [pointer2];
+    int32 [pointer2] = 0;
     //pointer2 = 5; // Pointer2 now has the value 5, but its not initilised, so the program will crash
     [pointer2] = 5; // Pointer2 now is initlised to the adress `0x5`. It has the value of whatever is there
 
@@ -129,7 +127,6 @@ Ent has the classic C like control flow with the same syntax as C with the sligh
 Example:
 
 ```ent
-
 function main(void) -> int32
 {
 
