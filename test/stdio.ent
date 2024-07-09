@@ -1,0 +1,37 @@
+header {
+    function printf(char string) -> char {};
+    function strrev(char string) -> char {};
+};
+typedef int8 hello;
+function strrev(char string) -> char {
+    int16 length = 0;
+    while ( string[length] != "\0" ) {
+        length++;
+    };
+    if (length == 0)
+    {
+        return 0;
+    } else {
+        hello variable = 0;
+    }
+    int16 start = 0;
+    switch (length) {
+        case (0) {
+            return string;
+        };
+        case (1) {
+            return string;
+        };
+        default {
+            break;
+        };
+    };
+    while (start < length) {
+        char temp = string[start];
+        string[start] = string[length];
+        string[length] = temp;
+        start++;
+        length--;
+    };
+    return string;
+};
