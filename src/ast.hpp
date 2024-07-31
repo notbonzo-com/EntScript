@@ -16,6 +16,8 @@ enum class NodeType {
     VarDecl,
     VarDeclAssign,
     Assign,
+    IndexationAssign,
+    MemoryAssign,
     Return,
     Expression,
     If,
@@ -153,6 +155,40 @@ private:
     ASTNodePtr expression;
 };
 
+class IndexationAssignNode : public ASTNode {
+public:
+    IndexationAssignNode(std::string_view name, ASTNodePtr index, ASTNodePtr expression)
+        : ASTNode(NodeType::IndexationAssign), name(name), index(std::move(index)), expression(std::move(expression)) {}
+    
+    void print(int indent = 0) const override {
+        printIndent(indent);
+        std::cout << "IndexationAssign: " << name << std::endl;
+        index->print(indent + 1);
+        expression->print(indent + 1);
+    }
+
+private:
+    std::string name;
+    ASTNodePtr index;
+    ASTNodePtr expression;
+};
+
+class MemoryAssignNode : public ASTNode {
+public:
+    MemoryAssignNode(std::string_view name, ASTNodePtr expression)
+        : ASTNode(NodeType::MemoryAssign), name(name), expression(std::move(expression)) {}
+    
+    void print(int indent = 0) const override {
+        printIndent(indent);
+        std::cout << "MemoryAssign: " << name << std::endl;
+        expression->print(indent + 1);
+    }
+
+private:
+    std::string name;
+    ASTNodePtr expression;
+};
+
 class ReturnNode : public ASTNode {
 public:
     ReturnNode(ASTNodePtr expression)
@@ -277,6 +313,7 @@ private:
 
 class ContinueNode : public ASTNode {
 public:
+    ContinueNode() : ASTNode(NodeType::Continue) {}
     void print(int indent = 0) const override {
         printIndent(indent);
         std::cout << "Continue" << std::endl;
@@ -285,6 +322,7 @@ public:
 
 class BreakNode : public ASTNode {
 public:
+    BreakNode() : ASTNode(NodeType::Break) {}
     void print(int indent = 0) const override {
         printIndent(indent);
         std::cout << "Break" << std::endl;
@@ -310,7 +348,7 @@ private:
 
 class TypedefNode : public ASTNode {
 public:
-    TypedefNode(std::string_view name, std::variant<ASTNodePtr, std::string_view> type)
+    TypedefNode(std::string_view name, std::variant<ASTNodePtr, std::string> type)
         : ASTNode(NodeType::Typedef), name(name), type(std::move(type)) {}
 
     void print(int indent = 0) const override {
@@ -320,13 +358,13 @@ public:
             std::cout << "Type: ";
             std::get<ASTNodePtr>(type)->print(0);
         } else {
-            std::cout << "Type: " << std::get<std::string_view>(type) << std::endl;
+            std::cout << "Type: " << std::get<std::string>(type) << std::endl;
         }
     }
 
 private:
     std::string name;
-    std::variant<ASTNodePtr, std::string_view> type;
+    std::variant<ASTNodePtr, std::string> type;
 };
 
 class StructNode : public ASTNode {

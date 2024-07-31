@@ -206,16 +206,6 @@ The include has two types:
 ```
 The difference being that with `"`, the preprocessor will look for the filename/path relative to the directory the current file is in. While the `<>` will look for the file relative to the `root` directory (Can be multiple) passed to the compiler with the -I flag. Only the functions variables and types from the header block will be included and visible to the linker!
 
-- #asmstart
-- #asmend
-
-When the preprocessor encounters an `#asmstart` everything until the `#asmend` will be passed directly into the assembler. Keep in mind that `#asmend` must be on its own line
-just like all preprocessor directives.
-
-If you wish to use variables, you can specify them in the `#asmstart` directive using the following format:
-#asmstart(variablename1, variablename2)
-Then, these variables will be moved into the system v abi registers in order (Adress of `variablename1` will be in rdi, `variablename2` in rsi)
-
 - #define `name` `value`
 - #undef `name`
 

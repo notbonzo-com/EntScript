@@ -50,6 +50,7 @@ private:
     ASTNodePtr parseUnary();
     ASTNodePtr parseAddr();
     ASTNodePtr parseMemberAccess();
+    ASTNodePtr parseIndexation();
     ASTNodePtr parsePrimary();
     ASTNodePtr parseFunctionCall();
     ASTNodePtr parseCharLiteral();
