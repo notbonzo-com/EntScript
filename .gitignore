@@ -1,0 +1,6 @@
+# Ignore the "ent" compiler executable 
+ent
+
+# Ignore the "build/" directory
+build/
+
