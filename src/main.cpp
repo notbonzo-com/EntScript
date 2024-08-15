@@ -2,28 +2,35 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <filesystem>
 #include "preprocessor.hpp"
 #include "lexer.hpp"
 #include "tokens.hpp"
 #include "formats.hpp"
 #include "ast.hpp"
 #include "parser.hpp"
+#include "codegenerator.hpp"
 
 constexpr std::string_view ANSI_RESET = "\033[0m";
 constexpr std::string_view ANSI_BOLD_RED = "\033[1;31m";
 constexpr std::string_view ANSI_BOLD_YELLOW = "\033[1;33m";
 constexpr std::string_view ANSI_BOLD_WHITE = "\033[1;37m";
 
+constexpr std::string_view version = "0.1.0";
+
+// changable during build for cross-compilation
+// #define SYSROOT "/"
+constexpr std::string_view libDir = SYSROOT"/lib/ents";
+constexpr std::string_view incDir = SYSROOT"/include/ents";
+
 using namespace EntS;
 
 void printFatal(const char* str) { 
     std::cout << ANSI_BOLD_WHITE << "ents: " << ANSI_BOLD_RED << "fatal error: " << ANSI_RESET << str << "\n" << "compilation terminated.\n"; 
 }
-
 void printError(const char* str) { 
     std::cout << ANSI_BOLD_WHITE << "ents: " << ANSI_BOLD_RED << "error: " << ANSI_RESET << str << "\n"; 
 }
-
 void printWarning(const char* str) { 
     std::cout << ANSI_BOLD_WHITE << "ents: " << ANSI_BOLD_YELLOW << "warning: " << ANSI_RESET << str << "\n"; 
 }
@@ -40,7 +47,7 @@ void printHelp() {
 }
 
 void printVersion() {
-    std::cout << "EntS Compiler version 1.0.0\n";
+    std::cout << "EntS Compiler version " << version << "\n";
 }
 
 std::string readFile(const std::string& filename) {
@@ -64,7 +71,18 @@ int main(int argc, char** argv)
     std::string outputFile;
     bool generateAssemblyOnly = false;
     OutputFormat outputFormat = OutputFormat::ELF;
-	std::vector<std::string> incPath = { "/usr/include/ents" };
+	std::vector<std::string> incPath = { std::string(incDir) };
+
+    std::vector<std::string> checkDirs = { std::string(libDir)+"/crt0.o", std::string(libDir)+"/intlibe.a", std::string(libDir)+"/prog.asm", std::string(libDir)+"/epig.asm" };
+    for (const auto& dir : checkDirs) {
+        if (!std::filesystem::exists(dir)) {
+            printFatal(("library file not found: " + dir).c_str());
+            return 1;
+        }
+    }
+    // load the function prologue and epilogue code
+    std::string epilogue = readFile(std::string(libDir) + "/epig.asm");
+    std::string prologue = readFile(std::string(libDir) + "/prog.asm");
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -109,22 +127,16 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        std::cout << "Preprocessed content:\n" << *preprocessedContent << "\n";
-
         Lexer lexer(*preprocessedContent);
         auto tokens = lexer.tokenize();
 
         Parser parser(tokens);
-        parser.proc = &preprocessor;
-
         auto ast = parser.parse();
-        if (!ast) {
-            printFatal(("failed to parse file: " + inputFile).c_str());
-            return 1;
-        }
 
-        std::cout << "AST:\n";
-        ast->print();
+        CodeGenerator codeGenerator(ast, outputFormat, epilogue, prologue);
+        auto output = codeGenerator.generateCode();
+
+        // write output, assemble etc
     }
 
     return 0;

@@ -4,6 +4,8 @@ ROOT = .
 SRC_DIR = $(ROOT)/src
 BUILD_DIR = $(ROOT)/build
 
+SYSROOT = $(abspath ./sysroot)
+
 GREEN = \033[0;32m
 YELLOW = \033[0;33m
 NC = \033[0m # No Color
@@ -21,7 +23,7 @@ compiler: $(OBJ_FILES)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 	@echo "$(GREEN)Compiling $@$(NC)"
-	@$(CC) -c -o $@ $< -std=c++23
+	@$(CC) -c -o $@ $< -std=c++23 -DSYSROOT=\"$(SYSROOT)\"
 
 clean:
 	@clear

@@ -16,7 +16,6 @@ public:
     explicit Parser(const std::vector<Token>& tokens);
 
     ASTNodePtr parse();
-    Preprocessor* proc;
 
 private:
     const Token& consume(); // returns reference to token, and increments

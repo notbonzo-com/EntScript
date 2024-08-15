@@ -4,7 +4,7 @@
 
 namespace EntS {
 
-Parser::Parser(const std::vector<Token>& tokens) : tokens(tokens), current(0), proc(nullptr) {}
+Parser::Parser(const std::vector<Token>& tokens) : tokens(tokens), current(0) {}
 
 const Token& Parser::consume() {
     if (current >= tokens.size()) {
