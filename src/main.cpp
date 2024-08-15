@@ -109,20 +109,22 @@ int main(int argc, char** argv)
             return 1;
         }
 
+        std::cout << "Preprocessed content:\n" << *preprocessedContent << "\n";
+
         Lexer lexer(*preprocessedContent);
         auto tokens = lexer.tokenize();
 
-        // Parser parser(tokens);
-        // parser.proc = &preprocessor;
+        Parser parser(tokens);
+        parser.proc = &preprocessor;
 
-        // auto ast = parser.parse();
-        // if (!ast) {
-        //     printFatal(("failed to parse file: " + inputFile).c_str());
-        //     return 1;
-        // }
+        auto ast = parser.parse();
+        if (!ast) {
+            printFatal(("failed to parse file: " + inputFile).c_str());
+            return 1;
+        }
 
-        // std::cout << "AST:\n";
-        // ast->print();
+        std::cout << "AST:\n";
+        ast->print();
     }
 
     return 0;

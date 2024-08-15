@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <stdexcept>
 #include "tokens.hpp"
 #include "ast.hpp"
 #include "preprocessor.hpp"
@@ -53,7 +54,7 @@ private:
     ASTNodePtr parseIndexation();
     ASTNodePtr parsePrimary();
     ASTNodePtr parseFunctionCall();
-    ASTNodePtr parseCharLiteral();
+    ASTNodePtr parseLiteral();
     ASTNodePtr parseStringLiteral();
     ASTNodePtr parseTernary();
     ASTNodePtr parseIdentifier();
@@ -72,6 +73,8 @@ private:
     ASTNodePtr parseContinue();
     ASTNodePtr parseBreak();
     ASTNodePtr parseAsm();
+    ASTNodePtr parseIndexing(const std::string& name);
+    ASTNodePtr parseMemoryAddressing();
 
     ASTNodePtr parseElse();
     ASTNodePtr parseElseIf();
@@ -84,6 +87,8 @@ private:
         "void", "char", "float", "bool", "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64"
     };
     std::vector<std::string> existing_functions;
+    std::vector<std::string> prototypes;
+    std::vector<std::string> scoped;
     std::vector<std::string> existing_variables;
 
     bool isType(const std::string& name);

@@ -15,7 +15,7 @@ function strrev(char string) -> char {
         return 0;
     } else {
         hello variable = 0;
-    }
+    };
     int16 start = 0;
     switch (length) {
         case (0) {
@@ -46,4 +46,4 @@ function puts(char string) -> char {
         mov rdx, 0
         syscall
     };
-}
+};

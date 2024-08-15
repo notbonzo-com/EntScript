@@ -1,8 +1,6 @@
 #include "lexer.hpp"
 #include <cctype>
-#include <unordered_map>
 #include <iostream>
-#include <variant>
 
 namespace EntS {
 
@@ -35,9 +33,9 @@ static const std::unordered_map<std::string, Token::TokenType> keywords = {
     {"asm", Token::TokenType::INLINE_ASM}
 };
 
-Lexer::Lexer(const std::string& source)
+Lexer::Lexer(std::string_view source)
     : source(source), start(0), current(0), line(1), column(1) {
-    tokens.reserve(source.size() / 4); // Estimate, to minimise resizing
+    tokens.reserve(source.size() / 4); // Estimate, to minimize resizing
 }
 
 std::vector<Token> Lexer::tokenize() {
@@ -77,6 +75,9 @@ std::vector<Token> Lexer::tokenize() {
             case '&': addToken(Token::TokenType::AMPERSAND); break;
             case '|': addToken(Token::TokenType::PIPE); break;
             case '"': handleString(); break;
+            case '\'':
+                handleCharLiteral();
+                break;
             default:
                 if (std::isdigit(c)) {
                     handleNumber();
@@ -102,10 +103,11 @@ char Lexer::peekNext() const {
 
 char Lexer::advance() {
     char c = source[current++];
-    column++;
     if (c == '\n') {
         line++;
         column = 1;
+    } else {
+        column++;
     }
     return c;
 }
@@ -116,8 +118,8 @@ bool Lexer::match(char expected) {
     return true;
 }
 
-void Lexer::addToken(Token::TokenType type, const std::string& value) {
-    tokens.emplace_back(type, value, line, column - (current - start));
+void Lexer::addToken(Token::TokenType type, std::string_view value) {
+    tokens.emplace_back(type, std::string(value), line, column - (current - start));
 }
 
 void Lexer::error(const std::string& message) {
@@ -128,8 +130,8 @@ void Lexer::handleIdentifier() {
     while (std::isalnum(peek()) || peek() == '_') {
         advance();
     }
-    std::string text = source.substr(start, current - start);
-    Token::TokenType type = keywords.count(text) ? keywords.at(text) : Token::TokenType::IDENTIFIER;
+    std::string_view text = source.substr(start, current - start);
+    Token::TokenType type = keywords.count(std::string(text)) ? keywords.at(std::string(text)) : Token::TokenType::IDENTIFIER;
     addToken(type, text);
 }
 
@@ -148,7 +150,10 @@ void Lexer::handleNumber() {
 
 void Lexer::handleString() {
     while (peek() != '"' && current < source.length()) {
-        if (peek() == '\n') line++;
+        if (peek() == '\n') {
+            line++;
+            column = 1;
+        }
         advance();
     }
     if (current >= source.length()) {
@@ -157,6 +162,30 @@ void Lexer::handleString() {
     }
     advance(); // closing "
     addToken(Token::TokenType::STRING, source.substr(start + 1, current - start - 2));
+}
+
+void Lexer::handleCharLiteral() {
+    if (peek() == '\\') {
+        advance();
+        if (std::isprint(peek())) {
+            advance();
+        } else if (peek() == 'x') {
+            advance();
+            while (std::isxdigit(peek())) {
+                advance();
+            }
+        }
+    } else {
+        advance();
+    }
+
+    if (peek() != '\'') {
+        error("Unterminated character literal.");
+        return;
+    }
+
+    advance();
+    addToken(Token::TokenType::CHAR_LIT, source.substr(start + 1, current - start - 2));
 }
 
 void Lexer::handleSlash() {
@@ -173,11 +202,13 @@ void Lexer::skipLineComment() {
     while (peek() != '\n' && current < source.length()) {
         advance();
     }
+    if (peek() == '\n') {
+        advance();
+    }
 }
 
 void Lexer::skipBlockComment() {
     while (peek() != '\0' && !(peek() == '*' && peekNext() == '/')) {
-        if (peek() == '\n') line++;
         advance();
     }
     if (current >= source.length()) {
@@ -199,6 +230,7 @@ void Lexer::skipWhitespace() {
                 break;
             case '\n':
                 advance();
+                start = current;
                 break;
             default:
                 start = current;
@@ -206,5 +238,6 @@ void Lexer::skipWhitespace() {
         }
     }
 }
+
 
 } // namespace EntS

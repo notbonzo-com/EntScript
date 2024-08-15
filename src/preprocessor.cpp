@@ -26,6 +26,7 @@ std::optional<std::string> Preprocessor::preprocess(const std::string& filename)
 
     while (std::getline(stream, line)) {
         if (line.empty()) {
+            output << "\n";
             continue;
         }
 

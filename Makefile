@@ -16,17 +16,17 @@ OBJ_FILES := $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRC_FILES))
 all: $(BUILD_DIR) compiler
 
 compiler: $(OBJ_FILES)
-	@echo -e "$(GREEN)Linking compiler$(NC)"
-	$(CC) -o $(ROOT)/ent $(OBJ_FILES)
+	@echo "$(GREEN)Linking compiler$(NC)"
+	@$(CC) -o $(ROOT)/ent $(OBJ_FILES)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
-	@echo -e "$(GREEN)Compiling $@$(NC)"
-	$(CC) -c -o $@ $< -std=c++23
+	@echo "$(GREEN)Compiling $@$(NC)"
+	@$(CC) -c -o $@ $< -std=c++23
 
 clean:
 	@clear
-	rm -rf $(ROOT)/ent $(BUILD_DIR)
-	@echo -e "$(YELLOW)Clean complete$(NC)"
+	@rm -rf $(ROOT)/ent $(BUILD_DIR)
+	@echo "$(YELLOW)Clean complete$(NC)"
 
 reset:
 	$(MAKE) clean

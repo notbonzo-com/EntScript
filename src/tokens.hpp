@@ -14,7 +14,7 @@ namespace EntS {
             LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE, LEFT_BRACKET, RIGHT_BRACKET,
             SEMICOLON, COMMA, ASSIGN, EQUAL, NOT_EQUAL, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL,
             PLUS, MINUS, STAR, SLASH, PERCENT, AMPERSAND, PIPE, EXCLAMATION,
-            IDENTIFIER, NUMBER, STRING, EOF_TOKEN,
+            IDENTIFIER, NUMBER, STRING, CHAR_LIT, EOF_TOKEN,
         };
         TokenType type;
         std::string value;
@@ -80,9 +80,72 @@ namespace EntS {
                 case TokenType::NUMBER: result = "NUMBER"; break;
                 case TokenType::STRING: result = "STRING"; break;
                 case TokenType::EOF_TOKEN: result = "EOF_TOKEN"; break;
+                case TokenType::CHAR_LIT: result = "CHAR_LIT"; break;
+                case TokenType::INLINE_ASM: result = "INLINE_ASM"; break;
             }
 
             return result + " " + value + " " + std::to_string(line) + " " + std::to_string(column);
+        }
+        std::string toSymbol() const {
+            std::string result;
+            switch (type) {
+                case TokenType::FUNCTION: result = "function"; break;
+                case TokenType::RETURN: result = "return"; break;
+                case TokenType::VOID: result = "void"; break;
+                case TokenType::TYPEDEF: result = "typedef"; break;
+                case TokenType::STRUCT: result = "struct"; break;
+                case TokenType::IF: result = "if"; break;
+                case TokenType::ELSE: result = "else"; break;
+                case TokenType::WHILE: result = "while"; break;
+                case TokenType::SWITCH: result = "switch"; break;
+                case TokenType::CASE: result = "case"; break;
+                case TokenType::DEFAULT: result = "default"; break;
+                case TokenType::BREAK: result = "break"; break;
+                case TokenType::CONTINUE: result = "continue"; break;
+                case TokenType::HEADER: result = "header"; break;
+                case TokenType::INT8: result = "int8"; break;
+                case TokenType::INT16: result = "int16"; break;
+                case TokenType::INT32: result = "int32"; break;
+                case TokenType::INT64: result = "int64"; break;
+                case TokenType::UINT8: result = "uint8"; break;
+                case TokenType::UINT16: result = "uint16"; break;
+                case TokenType::UINT32: result = "uint32"; break;
+                case TokenType::UINT64: result = "uint64"; break;
+                case TokenType::FLOAT: result = "float"; break;
+                case TokenType::CHAR: result = "char"; break;
+                case TokenType::BOOL: result = "bool"; break;
+                case TokenType::LEFT_PAREN: result = "("; break;
+                case TokenType::RIGHT_PAREN: result = ")"; break;
+                case TokenType::LEFT_BRACE: result = "{"; break;
+                case TokenType::RIGHT_BRACE: result = "}"; break;
+                case TokenType::LEFT_BRACKET: result = "["; break;
+                case TokenType::RIGHT_BRACKET: result = "]"; break;
+                case TokenType::SEMICOLON: result = ";"; break;
+                case TokenType::COMMA: result = ","; break;
+                case TokenType::ASSIGN: result = "="; break;
+                case TokenType::EQUAL: result = "=="; break;
+                case TokenType::NOT_EQUAL: result = "!="; break;
+                case TokenType::LESS: result = "<"; break;
+                case TokenType::LESS_EQUAL: result = "<="; break;
+                case TokenType::GREATER: result = ">"; break;
+                case TokenType::GREATER_EQUAL: result = ">="; break;
+                case TokenType::PLUS: result = "+"; break;
+                case TokenType::MINUS: result = "-"; break;
+                case TokenType::STAR: result = "*"; break;
+                case TokenType::SLASH: result = "/"; break;
+                case TokenType::PERCENT: result = "%"; break;
+                case TokenType::AMPERSAND: result = "&"; break;
+                case TokenType::PIPE: result = "|"; break;
+                case TokenType::EXCLAMATION: result = "!"; break;
+                case TokenType::IDENTIFIER: result = value; break;
+                case TokenType::NUMBER: result = value; break;
+                case TokenType::STRING: result = value; break;
+                case TokenType::EOF_TOKEN: result = "EOF_TOKEN"; break;
+                case TokenType::CHAR_LIT: result = value; break;
+                case TokenType::INLINE_ASM: result = value; break;
+            }
+
+            return result;
         }
     };
 

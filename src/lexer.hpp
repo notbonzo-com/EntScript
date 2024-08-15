@@ -1,7 +1,7 @@
 #ifndef LEXER_HPP
 #define LEXER_HPP
 
-#include <string>
+#include <string_view>
 #include <vector>
 #include <unordered_map>
 #include <optional>
@@ -11,7 +11,7 @@ namespace EntS {
 
 class Lexer {
 public:
-    explicit Lexer(const std::string& source);
+    explicit Lexer(std::string_view source);
     std::vector<Token> tokenize();
 
 private:
@@ -19,7 +19,7 @@ private:
     char peekNext() const;
     char advance();
     bool match(char expected);
-    void addToken(Token::TokenType type, const std::string& value = "");
+    void addToken(Token::TokenType type, std::string_view value = "");
     void error(const std::string& message);
 
     void handleIdentifier();
@@ -29,8 +29,9 @@ private:
     void skipLineComment();
     void skipBlockComment();
     void skipWhitespace();
+    void handleCharLiteral();
 
-    std::string source;
+    std::string_view source;
     std::vector<Token> tokens;
     size_t start;
     size_t current;

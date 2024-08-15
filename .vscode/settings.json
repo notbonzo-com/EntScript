@@ -97,6 +97,7 @@
         "ranges": "cpp",
         "codecvt": "cpp",
         "regex": "cpp",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "expected": "cpp"
     }
 }
