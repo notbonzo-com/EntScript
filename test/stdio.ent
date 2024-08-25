@@ -10,15 +10,31 @@ typedef struct {
     int8 c;
 } vector3d;
 
-function test() -> vector3d {
+typedef struct {
     vector3d vector;
+    int8 r;
+    int8 b;
+    int8 g;
+} mesh3d;
+
+function test() -> mesh3d {
+    vector3d vector;
+    mesh3d mesh;
     vector->a = 1;
     vector->b = 2;
     vector->c = 3;
-    return vector;
+    mesh->vector = vector;
+    mesh->r = 1;
+    mesh->b = 2;
+    mesh->g = 3;
+    return mesh;
 };
 
 function strrev(char string) -> char {
+
+    mesh3d mesh = test();
+    mesh->vector->a = 1;
+
     char string2;
     [string2] = [string] + 7;
     string2 = "Hello World!\n";

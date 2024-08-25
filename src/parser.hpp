@@ -5,6 +5,8 @@
 #include <memory>
 #include <unordered_map>
 #include <stdexcept>
+#include <stack>
+#include <set>
 #include "tokens.hpp"
 #include "ast.hpp"
 #include "preprocessor.hpp"
@@ -24,6 +26,11 @@ private:
     void expect(Token::TokenType type, const std::string& message); // errors if token is not of type
     bool check(Token::TokenType type) const; // returns true if current token is of type
     bool match(std::initializer_list<Token::TokenType> types); // returns true if current token is one of types
+
+    void enterScope();
+    void exitScope();
+    void addScopedVariable(const std::string& name);
+    bool isVariableDeclared(const std::string& name) const;
 
     ASTNodePtr parseFunction();
     ASTNodePtr parseCall();
@@ -72,7 +79,6 @@ private:
     ASTNodePtr parseDecrement();
     ASTNodePtr parseContinue();
     ASTNodePtr parseBreak();
-    ASTNodePtr parseAsm();
     ASTNodePtr parseIndexing(const std::string& name);
     ASTNodePtr parseMemoryAddressing();
 
@@ -88,9 +94,9 @@ private:
     };
     std::vector<std::string> existing_functions;
     std::vector<std::string> prototypes;
-    std::vector<std::string> scoped;
-    std::vector<std::string> existing_variables;
     std::unordered_map<std::string, std::vector<std::string>> structDefinitions;
+
+    std::stack<std::set<std::string>> scopedStack;
 
     bool isType(const std::string& name);
     bool isStructMember(const std::string& structName, const std::string& memberName);
