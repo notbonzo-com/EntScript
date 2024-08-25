@@ -19,6 +19,10 @@ public:
 
     ASTNodePtr parse();
 
+    std::unordered_map<std::string, std::string> getTypedefs() const {
+        return typedefs;
+    }
+
 private:
     const Token& consume(); // returns reference to token, and increments
     const Token& peek(int offset = 0) const; // returns reference to token at offset
@@ -26,6 +30,7 @@ private:
     void expect(Token::TokenType type, const std::string& message); // errors if token is not of type
     bool check(Token::TokenType type) const; // returns true if current token is of type
     bool match(std::initializer_list<Token::TokenType> types); // returns true if current token is one of types
+    std::string resolveTypedef(const std::string& type) const;
 
     void enterScope();
     void exitScope();
@@ -94,6 +99,7 @@ private:
     };
     std::vector<std::string> existing_functions;
     std::vector<std::string> prototypes;
+    std::unordered_map<std::string, std::string> typedefs;
     std::unordered_map<std::string, std::vector<std::string>> structDefinitions;
 
     std::stack<std::set<std::string>> scopedStack;

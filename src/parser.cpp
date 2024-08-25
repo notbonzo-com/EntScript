@@ -103,13 +103,20 @@ bool Parser::isStructMember(const std::string& structName, const std::string& me
     return false;
 }
 
+std::string Parser::resolveTypedef(const std::string& type) const {
+    auto it = typedefs.find(type);
+    if (it != typedefs.end()) {
+        return resolveTypedef(it->second);
+    }
+    return type;
+}
+
 void Parser::error(const Token& token, const std::string& message) {
     std::stringstream ss;
     ss << "[" << token.line << "/" << token.column << ":" << token.toString() << "]: " << message << std::endl;
     printError(ss.str().c_str());
 }
 
-// Parsing functions
 ASTNodePtr Parser::parse() {
     std::vector<ASTNodePtr> statements;
     while (!check(Token::TokenType::EOF_TOKEN)) {
@@ -131,7 +138,7 @@ ASTNodePtr Parser::parse() {
             error(peek(), "Expect statement.");
         }
     }
-    return std::make_unique<ProgramNode>(std::move(statements));
+    return std::make_shared<ProgramNode>(std::move(statements));
 }
 
 ASTNodePtr Parser::parseHeader() {
@@ -153,7 +160,7 @@ ASTNodePtr Parser::parseHeader() {
     expect(Token::TokenType::RIGHT_BRACE, "Expect '}' after header.");
     expect(Token::TokenType::SEMICOLON, "Expect ';' after header.");
 
-    return std::make_unique<HeaderNode>(std::move(prototypes));
+    return std::make_shared<HeaderNode>(std::move(prototypes));
 }
 
 ASTNodePtr Parser::parseFunctionPrototype() {
@@ -174,14 +181,14 @@ ASTNodePtr Parser::parseFunctionPrototype() {
             error(peek(), "Expect function parameter type.");
         }
         std::string paramName = consume().value;
-        parameters.push_back(std::make_unique<ParameterNode>(type, paramName));
+        parameters.push_back(std::make_shared<ParameterNode>(type, paramName));
         while (match({Token::TokenType::COMMA})) {
             type = consume().value;
             if (!isType(type)) {
                 error(peek(), "Expect function parameter type.");
             }
             paramName = consume().value;
-            parameters.push_back(std::make_unique<ParameterNode>(type, paramName));
+            parameters.push_back(std::make_shared<ParameterNode>(type, paramName));
         }
     }
     expect(Token::TokenType::RIGHT_PAREN, "Expect ')' after function parameters.");
@@ -195,7 +202,7 @@ ASTNodePtr Parser::parseFunctionPrototype() {
 
     expect(Token::TokenType::SEMICOLON, "Expect ';' after function prototype.");
 
-    return std::make_unique<FunctionPrototypeNode>(name, return_value, std::move(parameters));
+    return std::make_shared<FunctionPrototypeNode>(name, return_value, std::move(parameters));
 }
 
 ASTNodePtr Parser::parseTypedef() {
@@ -220,8 +227,15 @@ ASTNodePtr Parser::parseTypedef() {
         error(previous(), "Cannot redefine type");
     }
     expect(Token::TokenType::SEMICOLON, "Expect ';' after typedef.");
+
+    if (std::holds_alternative<std::string>(old_type)) {
+        typedefs[new_type] = resolveTypedef(std::get<std::string>(old_type));
+    } else {
+        typedefs[new_type] = "struct";
+    }
+
     existing_types.push_back(new_type);
-    return std::make_unique<TypedefNode>(new_type, std::move(old_type));
+    return std::make_shared<TypedefNode>(new_type, std::move(old_type));
 }
 
 ASTNodePtr Parser::parseStruct() {
@@ -246,7 +260,7 @@ ASTNodePtr Parser::parseStruct() {
             error(previous(), "Duplicated struct member name.");
         }
         used_names.push_back(name);
-        members.push_back(std::make_unique<ParameterNode>(type, name));
+        members.push_back(std::make_shared<ParameterNode>(type, name));
         memberNames.push_back(name);
         expect(Token::TokenType::SEMICOLON, "Expect ';' after struct member.");
     }
@@ -258,7 +272,7 @@ ASTNodePtr Parser::parseStruct() {
 
     structDefinitions[peek().value] = memberNames;
 
-    return std::make_unique<StructNode>(std::move(members));
+    return std::make_shared<StructNode>(std::move(members));
 }
 
 ASTNodePtr Parser::parseFunction() {
@@ -288,7 +302,7 @@ ASTNodePtr Parser::parseFunction() {
         }
         std::string paramName = consume().value;
         addScopedVariable(paramName);
-        parameters.push_back(std::make_unique<ParameterNode>(type, paramName));
+        parameters.push_back(std::make_shared<ParameterNode>(type, paramName));
         while (match({Token::TokenType::COMMA})) {
             type = consume().value;
             if (!isType(type)) {
@@ -296,7 +310,7 @@ ASTNodePtr Parser::parseFunction() {
             }
             paramName = consume().value;
             addScopedVariable(paramName);
-            parameters.push_back(std::make_unique<ParameterNode>(type, paramName));
+            parameters.push_back(std::make_shared<ParameterNode>(type, paramName));
         }
     }
     
@@ -318,7 +332,7 @@ ASTNodePtr Parser::parseFunction() {
     exitScope();
 
     expect(Token::TokenType::SEMICOLON, "Expect ';' after function declaration.");
-    return std::make_unique<FunctionNode>(name, return_value, std::move(parameters), std::move(body));
+    return std::make_shared<FunctionNode>(name, return_value, std::move(parameters), std::move(body));
 }
 
 ASTNodePtr Parser::parseBlock() {
@@ -349,16 +363,16 @@ ASTNodePtr Parser::parseBlock() {
         else if (match({Token::TokenType::RETURN})) {
             ASTNodePtr expr = parseExpression();
             expect(Token::TokenType::SEMICOLON, "Expect ';' after return statement.");
-            statements.push_back(std::make_unique<ReturnNode>(std::move(expr)));
+            statements.push_back(std::make_shared<ReturnNode>(std::move(expr)));
         }
 
         else if (match({Token::TokenType::CONTINUE})) {
-            statements.push_back(std::make_unique<ContinueNode>());
+            statements.push_back(std::make_shared<ContinueNode>());
             expect(Token::TokenType::SEMICOLON, "Expect ';' after continue statement.");
         }
 
         else if (match({Token::TokenType::BREAK})) {
-            statements.push_back(std::make_unique<BreakNode>());
+            statements.push_back(std::make_shared<BreakNode>());
             expect(Token::TokenType::SEMICOLON, "Expect ';' after break statement.");
         }
 
@@ -369,12 +383,12 @@ ASTNodePtr Parser::parseBlock() {
         else if (check(Token::TokenType::IDENTIFIER)) {
             if (isVariableDeclared(peek().value)) {
                 if (peek(1).type == Token::TokenType::PLUS && peek(2).type == Token::TokenType::PLUS) {
-                    statements.push_back(std::make_unique<IncrementNode>(peek().value));
+                    statements.push_back(std::make_shared<IncrementNode>(peek().value));
                     consume(); consume(); consume(); // consume identifier and '++'
                     expect(Token::TokenType::SEMICOLON, "Expect ';' after increment statement.");
                 }
                 else if (peek(1).type == Token::TokenType::MINUS && peek(2).type == Token::TokenType::MINUS) {
-                    statements.push_back(std::make_unique<DecrementNode>(peek().value));
+                    statements.push_back(std::make_shared<DecrementNode>(peek().value));
                     consume(); consume(); consume(); // consume identifier and '--'
                     expect(Token::TokenType::SEMICOLON, "Expect ';' after decrement statement.");
                 }
@@ -383,7 +397,7 @@ ASTNodePtr Parser::parseBlock() {
                     expect(Token::TokenType::ASSIGN, "Expect '=' after variable name.");
                     ASTNodePtr expr = parseExpression();
                     expect(Token::TokenType::SEMICOLON, "Expect ';' after assignment.");
-                    statements.push_back(std::make_unique<AssignNode>(name, std::move(expr)));
+                    statements.push_back(std::make_shared<AssignNode>(name, std::move(expr)));
                 }
                 else if (peek(1).type == Token::TokenType::LEFT_BRACKET) {
                     std::string name = consume().value;
@@ -393,26 +407,26 @@ ASTNodePtr Parser::parseBlock() {
                     expect(Token::TokenType::ASSIGN, "Expect '=' after index.");
                     ASTNodePtr value = parseExpression();
                     expect(Token::TokenType::SEMICOLON, "Expect ';' after indexation assignment.");
-                    statements.push_back(std::make_unique<IndexationAssignNode>(name, std::move(index), std::move(value)));
+                    statements.push_back(std::make_shared<IndexationAssignNode>(name, std::move(index), std::move(value)));
                 }
                 else if (peek(1).type == Token::TokenType::MINUS && peek(2).type == Token::TokenType::GREATER) {
                     std::string name = consume().value;
-                    ASTNodePtr current = std::make_unique<IdentifierNode>(name);
+                    ASTNodePtr current = std::make_shared<IdentifierNode>(name);
                     expect(Token::TokenType::MINUS, "Expect '->' after parent name.");
                     expect(Token::TokenType::GREATER, "Expect '->' after parent name.");
                     std::string memberName = consume().value;
-                    current = std::make_unique<StructMemberAccessNode>(std::move(current), memberName);
+                    current = std::make_shared<StructMemberAccessNode>(std::move(current), memberName);
 
                     while (match({Token::TokenType::MINUS}) && match({Token::TokenType::GREATER})) {
                         memberName = consume().value;
-                        current = std::make_unique<StructMemberAccessNode>(std::move(current), memberName);
+                        current = std::make_shared<StructMemberAccessNode>(std::move(current), memberName);
                     }
 
                     expect(Token::TokenType::ASSIGN, "Expect '=' after struct member name.");
                     ASTNodePtr expr = parseExpression();
                     expect(Token::TokenType::SEMICOLON, "Expect ';' after struct member assignment.");
 
-                    statements.push_back(std::make_unique<StructMemberAssignNode>(std::move(current), std::move(expr)));
+                    statements.push_back(std::make_shared<StructMemberAssignNode>(std::move(current), std::move(expr)));
                 } else {
                     error(peek(1), "Unexpected token after identifier.");
                 }
@@ -430,7 +444,7 @@ ASTNodePtr Parser::parseBlock() {
             expect(Token::TokenType::ASSIGN, "Expect '=' after index.");
             ASTNodePtr value = parseExpression();
             expect(Token::TokenType::SEMICOLON, "Expect ';' after memory assignment.");
-            statements.push_back(std::make_unique<MemoryAssignNode>(name, std::move(value)));
+            statements.push_back(std::make_shared<MemoryAssignNode>(name, std::move(value)));
         } else {
             ASTNodePtr expr = parseExpression();
             statements.push_back(std::move(expr));
@@ -441,7 +455,7 @@ ASTNodePtr Parser::parseBlock() {
     // Exit the scope when the block ends
     exitScope();
 
-    return std::make_unique<BlockNode>(std::move(statements));
+    return std::make_shared<BlockNode>(std::move(statements));
 }
 
 ASTNodePtr Parser::parseSwitch() {
@@ -463,7 +477,7 @@ ASTNodePtr Parser::parseSwitch() {
 
     expect(Token::TokenType::RIGHT_BRACE, "Expect '}' after 'switch' body.");
     expect(Token::TokenType::SEMICOLON, "Expect ';' after 'switch' body.");
-    return std::make_unique<SwitchNode>(std::move(condition), std::move(cases));
+    return std::make_shared<SwitchNode>(std::move(condition), std::move(cases));
 }
 
 ASTNodePtr Parser::parseCase() {
@@ -475,7 +489,7 @@ ASTNodePtr Parser::parseCase() {
     ASTNodePtr body = parseBlock();
     expect(Token::TokenType::RIGHT_BRACE, "Expect '}' after 'case' block.");
     expect(Token::TokenType::SEMICOLON, "Expect ';' after 'case' block.");
-    return std::make_unique<CaseNode>(std::move(condition), std::move(body));
+    return std::make_shared<CaseNode>(std::move(condition), std::move(body));
 }
 
 ASTNodePtr Parser::parseDefault() {
@@ -484,7 +498,7 @@ ASTNodePtr Parser::parseDefault() {
     ASTNodePtr body = parseBlock();
     expect(Token::TokenType::RIGHT_BRACE, "Expect '}' after 'default' block.");
     expect(Token::TokenType::SEMICOLON, "Expect ';' after 'default' block.");
-    return std::make_unique<DefaultNode>(std::move(body));
+    return std::make_shared<DefaultNode>(std::move(body));
 }
 
 ASTNodePtr Parser::parseVarDecl() {
@@ -511,7 +525,7 @@ ASTNodePtr Parser::parseVarDecl() {
 
     addScopedVariable(name);
     expect(Token::TokenType::SEMICOLON, "Expect ';' after variable declaration.");
-    return std::make_unique<VarDeclNode>(type, name, initByAddr);
+    return std::make_shared<VarDeclNode>(type, name, initByAddr);
 }
 
 ASTNodePtr Parser::parseVarDeclAssign() {
@@ -548,7 +562,7 @@ ASTNodePtr Parser::parseVarDeclAssign() {
     }
 
     expect(Token::TokenType::SEMICOLON, "Expect ';' after variable declaration.");
-    return std::make_unique<VarDeclAssignNode>(type, name, std::move(initializer), initByAddr);
+    return std::make_shared<VarDeclAssignNode>(type, name, std::move(initializer), initByAddr);
 }
 
 ASTNodePtr Parser::parseGlobalVarDecl() {
@@ -577,7 +591,7 @@ ASTNodePtr Parser::parseGlobalVarDecl() {
 
     addScopedVariable(name);
     expect(Token::TokenType::SEMICOLON, "Expect ';' after global variable declaration.");
-    return std::make_unique<GlobalVarDeclNode>(type, name, initByAddr);
+    return std::make_shared<GlobalVarDeclNode>(type, name, initByAddr);
 }
 
 ASTNodePtr Parser::parseGlobalVarDeclAssign() {
@@ -613,7 +627,7 @@ ASTNodePtr Parser::parseGlobalVarDeclAssign() {
     }
 
     expect(Token::TokenType::SEMICOLON, "Expect ';' after global variable declaration.");
-    return std::make_unique<GlobalVarDeclAssignNode>(type, name, std::move(initializer), initByAddr);
+    return std::make_shared<GlobalVarDeclAssignNode>(type, name, std::move(initializer), initByAddr);
 }
 
 ASTNodePtr Parser::parseWhile() {
@@ -625,7 +639,7 @@ ASTNodePtr Parser::parseWhile() {
     ASTNodePtr body = parseBlock();
     expect(Token::TokenType::RIGHT_BRACE, "Expect '}' after 'while' block.");
     expect(Token::TokenType::SEMICOLON, "Expect ';' after 'while' block.");
-    return std::make_unique<WhileNode>(std::move(condition), std::move(body));
+    return std::make_shared<WhileNode>(std::move(condition), std::move(body));
 }
 
 ASTNodePtr Parser::parseIf() {
@@ -647,7 +661,7 @@ ASTNodePtr Parser::parseIf() {
         }
     }
     expect(Token::TokenType::SEMICOLON, "Expect ';' after 'if' block.");
-    return std::make_unique<IfNode>(std::move(condition), std::move(then_branch), std::move(else_branch));
+    return std::make_shared<IfNode>(std::move(condition), std::move(then_branch), std::move(else_branch));
 }
 
 ASTNodePtr Parser::parseFunctionCall() {
@@ -661,7 +675,7 @@ ASTNodePtr Parser::parseFunctionCall() {
         }
     }
     expect(Token::TokenType::RIGHT_PAREN, "Expect ')' after function arguments.");
-    return std::make_unique<FunctionCallNode>(name, std::move(args));
+    return std::make_shared<FunctionCallNode>(name, std::move(args));
 }
 
 ASTNodePtr Parser::parseExpression() {
@@ -681,7 +695,7 @@ ASTNodePtr Parser::parseLogicalOr() {
     while (match({Token::TokenType::PIPE})) {
         std::string op = previous().toSymbol();
         ASTNodePtr right = parseLogicalAnd();
-        left = std::make_unique<ExpressionNode>(std::move(left), op, std::move(right));
+        left = std::make_shared<ExpressionNode>(std::move(left), op, std::move(right));
     }
 
     return left;
@@ -693,7 +707,7 @@ ASTNodePtr Parser::parseLogicalAnd() {
     while (match({Token::TokenType::AMPERSAND})) {
         std::string op = previous().toSymbol();
         ASTNodePtr right = parseEquality();
-        left = std::make_unique<ExpressionNode>(std::move(left), op, std::move(right));
+        left = std::make_shared<ExpressionNode>(std::move(left), op, std::move(right));
     }
 
     return left;
@@ -705,7 +719,7 @@ ASTNodePtr Parser::parseEquality() {
     while (match({Token::TokenType::EQUAL, Token::TokenType::NOT_EQUAL})) {
         std::string op = previous().toSymbol();
         ASTNodePtr right = parseRelational();
-        left = std::make_unique<ExpressionNode>(std::move(left), op, std::move(right));
+        left = std::make_shared<ExpressionNode>(std::move(left), op, std::move(right));
     }
 
     return left;
@@ -717,7 +731,7 @@ ASTNodePtr Parser::parseRelational() {
     while (match({Token::TokenType::GREATER, Token::TokenType::GREATER_EQUAL, Token::TokenType::LESS, Token::TokenType::LESS_EQUAL})) {
         std::string op = previous().toSymbol();
         ASTNodePtr right = parseBitwise();
-        left = std::make_unique<ExpressionNode>(std::move(left), op, std::move(right));
+        left = std::make_shared<ExpressionNode>(std::move(left), op, std::move(right));
     }
 
     return left;
@@ -731,7 +745,7 @@ ASTNodePtr Parser::parseBitwise() {
         std::string op = previous().toSymbol();
         consume();
         ASTNodePtr right = parseAdditive();
-        left = std::make_unique<ExpressionNode>(std::move(left), op, std::move(right));
+        left = std::make_shared<ExpressionNode>(std::move(left), op, std::move(right));
     }
 
     return left;
@@ -743,7 +757,7 @@ ASTNodePtr Parser::parseAdditive() {
     while (match({Token::TokenType::PLUS, Token::TokenType::MINUS})) {
         std::string op = previous().toSymbol();
         ASTNodePtr right = parseMultiplicative();
-        left = std::make_unique<ExpressionNode>(std::move(left), op, std::move(right));
+        left = std::make_shared<ExpressionNode>(std::move(left), op, std::move(right));
     }
 
     return left;
@@ -755,7 +769,7 @@ ASTNodePtr Parser::parseMultiplicative() {
     while (match({Token::TokenType::STAR, Token::TokenType::SLASH})) {
         std::string op = previous().toSymbol();
         ASTNodePtr right = parseUnary();
-        left = std::make_unique<ExpressionNode>(std::move(left), op, std::move(right));
+        left = std::make_shared<ExpressionNode>(std::move(left), op, std::move(right));
     }
 
     return left;
@@ -765,7 +779,7 @@ ASTNodePtr Parser::parseUnary() {
     if (match({Token::TokenType::EXCLAMATION, Token::TokenType::MINUS})) {
         std::string op = previous().toSymbol();
         ASTNodePtr right = parseUnary();
-        return std::make_unique<ExpressionNode>(nullptr, op, std::move(right));
+        return std::make_shared<ExpressionNode>(nullptr, op, std::move(right));
     }
 
     return parsePrimary();
@@ -803,7 +817,7 @@ ASTNodePtr Parser::parseIdentifier() {
     } else if (match({Token::TokenType::MINUS}) && match({Token::TokenType::GREATER})) {
         return parseStructMemberAccess(name);
     } else if (isVariableDeclared(name)) {
-        return std::make_unique<IdentifierNode>(name);
+        return std::make_shared<IdentifierNode>(name);
     } else if (existing_functions.end() != std::find(existing_functions.begin(), existing_functions.end(), name)) {
         current--;
         return parseFunctionCall();
@@ -815,12 +829,12 @@ ASTNodePtr Parser::parseIdentifier() {
 
 ASTNodePtr Parser::parseLiteral() {
     Token token = previous();
-    return std::make_unique<LiteralNode>(token.value);
+    return std::make_shared<LiteralNode>(token.value);
 }
 
 ASTNodePtr Parser::parseStringLiteral() {
     Token token = previous();
-    return std::make_unique<StringLiteralNode>(token.value);
+    return std::make_shared<StringLiteralNode>(token.value);
 }
 
 ASTNodePtr Parser::parseIndexing(const std::string& name) {
@@ -829,7 +843,7 @@ ASTNodePtr Parser::parseIndexing(const std::string& name) {
         error(tokens[current - 3], "Undefined variable name.");
     }
     expect(Token::TokenType::RIGHT_BRACKET, "Expect ']' after array index.");
-    return std::make_unique<IndexNode>(name, std::move(index));
+    return std::make_shared<IndexNode>(name, std::move(index));
 }
 
 ASTNodePtr Parser::parseMemoryAddressing() {
@@ -838,14 +852,14 @@ ASTNodePtr Parser::parseMemoryAddressing() {
         error(previous(), "Undefined variable name.");
     }
     expect(Token::TokenType::RIGHT_BRACKET, "Expect ']' after variable name.");
-    return std::make_unique<MemoryAddressNode>(name);
+    return std::make_shared<MemoryAddressNode>(name);
 }
 
 ASTNodePtr Parser::parseStructMemberAccess(const std::string& structName) {
-    ASTNodePtr current = std::make_unique<IdentifierNode>(structName);
+    ASTNodePtr current = std::make_shared<IdentifierNode>(structName);
 
     std::string memberName = consume().value;
-    current = std::make_unique<StructMemberAccessNode>(std::move(current), memberName);
+    current = std::make_shared<StructMemberAccessNode>(std::move(current), memberName);
 
     while (match({Token::TokenType::MINUS}) && match({Token::TokenType::GREATER})) {
         memberName = consume().value;
@@ -854,7 +868,7 @@ ASTNodePtr Parser::parseStructMemberAccess(const std::string& structName) {
             error(previous(), "Undefined struct member.");
         }
 
-        current = std::make_unique<StructMemberAccessNode>(std::move(current), memberName);
+        current = std::make_shared<StructMemberAccessNode>(std::move(current), memberName);
     }
 
     return current;

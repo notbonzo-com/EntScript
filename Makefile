@@ -22,11 +22,11 @@ all: $(BUILD_DIR) compiler
 
 compiler: $(OBJ_FILES)
 	@echo "$(GREEN)Linking compiler$(NC)"
-	@$(CC) -o $(ROOT)/ent $(OBJ_FILES) $(LLVM_LDFLAGS)
+	@$(CC) -o $(ROOT)/ent $(OBJ_FILES) $(LLVM_LDFLAGS) -g -fsanitize=address,undefined
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 	@echo "$(GREEN)Compiling $@$(NC)"
-	@$(CC) -c -o $@ $< -std=c++23 -DSYSROOT=\"$(SYSROOT)\" $(LLVM_CFLAGS)
+	@$(CC) -c -o $@ $< -std=c++23 -DSYSROOT=\"$(SYSROOT)\" $(LLVM_CFLAGS) -g -fsanitize=address,undefined
 
 clean:
 	@clear

@@ -11,11 +11,12 @@
 namespace EntS {
     
     enum class OutputFormat {
-        ELF,
+        ELF, OBJ
     };
 
     constexpr auto format_map = std::to_array<std::pair<std::string_view, OutputFormat>>({
         {"elf", OutputFormat::ELF},
+        {"obj", OutputFormat::OBJ}
     });
 
     namespace outputParsing {
@@ -31,6 +32,7 @@ namespace EntS {
         constexpr std::string_view toString(OutputFormat format) {
             switch (format) {
                 case OutputFormat::ELF: return "elf";
+                case OutputFormat::OBJ: return "obj";
                 default: return "unknown"; /* Something bad has happened */
             }
         }

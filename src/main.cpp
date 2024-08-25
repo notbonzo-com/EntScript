@@ -3,6 +3,20 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LegacyPassManager.h>
+#include <llvm/Bitcode/BitcodeWriter.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/Host.h>
+#include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Target/TargetOptions.h>
+#include <llvm/MC/TargetRegistry.h>
+
 #include "preprocessor.hpp"
 #include "lexer.hpp"
 #include "tokens.hpp"
@@ -18,8 +32,6 @@ constexpr std::string_view ANSI_BOLD_WHITE = "\033[1;37m";
 
 constexpr std::string_view version = "0.1.0";
 
-// changable during build for cross-compilation
-// #define SYSROOT "/"
 constexpr std::string_view libDir = SYSROOT"/lib/ents";
 constexpr std::string_view incDir = SYSROOT"/include/ents";
 
@@ -45,7 +57,7 @@ void printHelp() {
               << "  -o, --output <file>   Specify output file\n"
               << "  -S                    Generate assembly code only\n"
               << "  -f, --format <format> Specify output format (obj, elf; default is elf)\n"
-			  << "  -I, --include <path>  Adds a specific folder into the include path\n";
+              << "  -I, --include <path>  Adds a specific folder into the include path\n";
 }
 
 void printVersion() {
@@ -61,19 +73,18 @@ std::string readFile(const std::string& filename) {
     return content;
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     if (argc < 2) {
         printFatal("no input files");
     }
 
     std::vector<std::string> inputFiles;
-    std::string outputFile;
+    std::string outputFile = "a.out";
     bool generateAssemblyOnly = false;
     OutputFormat outputFormat = OutputFormat::ELF;
-	std::vector<std::string> incPath = { std::string(incDir) };
+    std::vector<std::string> incPath = { std::string(incDir) };
 
-    std::vector<std::string> checkDirs = { std::string(libDir)+"/crt0.o", std::string(libDir)+"/intlibe.a" };
+    std::vector<std::string> checkDirs = { std::string(libDir) + "/crt0.o", std::string(libDir) + "/intlibe.a" };
     for (const auto& dir : checkDirs) {
         if (!std::filesystem::exists(dir)) {
             printFatal(("library file not found: " + dir).c_str());
@@ -101,7 +112,7 @@ int main(int argc, char** argv)
             outputFormat = *formatOpt;
         } else if ((arg == "-I" || arg == "--include") && i + 1 < argc) {
             incPath.push_back(argv[++i]);
-		} else if (arg[0] != '-') {
+        } else if (arg[0] != '-') {
             inputFiles.push_back(arg);
         } else {
             printWarning(("unknown flag: " + arg).c_str());
@@ -112,9 +123,26 @@ int main(int argc, char** argv)
         printFatal("no input files");
     }
 
-    Preprocessor preprocessor(incPath);
+    LLVMInitializeX86TargetInfo();
+    LLVMInitializeX86Target();
+    LLVMInitializeX86TargetMC();
+    LLVMInitializeX86AsmPrinter();
+    LLVMInitializeX86AsmParser();
+
+    std::string targetTriple = llvm::sys::getDefaultTargetTriple();
+    std::string error;
+    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(targetTriple, error);
+
+    if (!target) {
+        printFatal(("Could not find target: " + error).c_str());
+    }
+
+    llvm::TargetOptions opt;
+    auto RM = llvm::Optional<llvm::Reloc::Model>();
+    llvm::TargetMachine* TM = target->createTargetMachine(targetTriple, "generic", "", opt, RM);
 
     for (const auto& inputFile : inputFiles) {
+        Preprocessor preprocessor(incPath);
         auto preprocessedContent = preprocessor.preprocess(inputFile);
         if (!preprocessedContent) {
             printFatal(("failed to preprocess file: " + inputFile).c_str());
@@ -126,8 +154,40 @@ int main(int argc, char** argv)
         Parser parser(tokens);
         auto ast = parser.parse();
 
-        ast->print(0);
-        // write output, assemble etc
+        CodeGenerator codeGen(inputFile, parser.getTypedefs());
+        llvm::Module* module = codeGen.generateCode(ast);
+
+        if (!module) {
+            printFatal("failed to generate code");
+        }
+
+        module->setDataLayout(TM->createDataLayout());
+        module->setTargetTriple(targetTriple);
+
+        llvm::legacy::PassManager pass;
+
+        std::error_code EC;
+        llvm::raw_fd_ostream dest(outputFile, EC, llvm::sys::fs::OF_None);
+
+        if (EC) {
+            printFatal(("could not open output file: " + outputFile).c_str());
+        }
+
+        if (generateAssemblyOnly) {
+            if (TM->addPassesToEmitFile(pass, dest, nullptr, llvm::CGFT_AssemblyFile)) {
+                printFatal("target does not support generation of assembly files");
+            }
+        } else {
+            if (outputFormat == OutputFormat::ELF) {
+                llvm::WriteBitcodeToFile(*module, dest);
+            } else if (outputFormat == OutputFormat::OBJ) {
+                if (TM->addPassesToEmitFile(pass, dest, nullptr, llvm::CGFT_ObjectFile)) {
+                    printFatal("target does not support generation of object files");
+                }
+            }
+        }
+
+        pass.run(*module);
     }
 
     return 0;

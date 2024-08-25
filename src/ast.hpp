@@ -65,11 +65,11 @@ protected:
         for (int i = 0; i < indent; ++i) std::cout << "  ";
     }
 
-private:
+
     NodeType type;
 };
 
-using ASTNodePtr = std::unique_ptr<ASTNode>;
+using ASTNodePtr = std::shared_ptr<ASTNode>;
 
 class ProgramNode : public ASTNode {
 public:
@@ -83,7 +83,7 @@ public:
         }
     }
 
-private:
+
     std::vector<ASTNodePtr> functions;
 };
 
@@ -107,7 +107,7 @@ public:
         body->print(indent + 2);
     }
 
-private:
+
     std::string name;
     std::string returnType;
     std::vector<ASTNodePtr> params;
@@ -124,7 +124,7 @@ public:
         std::cout << "VarDecl: " << type << ": " << name << (initByAddr ? " (Address initialised)" : "") << std::endl;
     }
 
-private:
+
     std::string type;
     std::string name;
     bool initByAddr;
@@ -141,7 +141,7 @@ public:
         expression->print(indent + 1);
     }
 
-private:
+
     std::string type;
     std::string name;
     ASTNodePtr expression;
@@ -159,7 +159,7 @@ public:
         expression->print(indent + 1);
     }
 
-private:
+
     std::string name;
     ASTNodePtr expression;
 };
@@ -176,7 +176,7 @@ public:
         expression->print(indent + 1);
     }
 
-private:
+
     std::string name;
     ASTNodePtr index;
     ASTNodePtr expression;
@@ -193,7 +193,7 @@ public:
         expression->print(indent + 1);
     }
 
-private:
+
     std::string name;
     ASTNodePtr expression;
 };
@@ -209,7 +209,7 @@ public:
         expression->print(indent + 1);
     }
 
-private:
+
     ASTNodePtr expression;
 };
 
@@ -229,7 +229,7 @@ public:
         }
     }
 
-private:
+
     std::optional<ASTNodePtr> left;
     std::string op;
     std::optional<ASTNodePtr> right;
@@ -245,7 +245,7 @@ public:
         std::cout << "Identifier: " << name << std::endl;
     }
 
-private:
+
     std::string name;
 };
 
@@ -259,7 +259,7 @@ public:
         std::cout << "Literal: " << value << std::endl;
     }
 
-private:
+
     std::string value;
 };
 
@@ -273,7 +273,7 @@ public:
         std::cout << "StringLiteral: " << value << std::endl;
     }
 
-private:
+
     std::string value;
 };
 
@@ -294,7 +294,7 @@ public:
         else_->print(indent + 1);
     }
 
-private:
+
     ASTNodePtr condition;
     ASTNodePtr body;
     ASTNodePtr else_;
@@ -312,7 +312,7 @@ public:
         body->print(indent + 1);
     }
 
-private:
+
     ASTNodePtr condition;
     ASTNodePtr body;
 };
@@ -331,7 +331,7 @@ public:
         }
     }
 
-private:
+
     ASTNodePtr condition;
     std::vector<ASTNodePtr> cases;
 };
@@ -348,7 +348,7 @@ public:
         body->print(indent + 1);
     }
 
-private:
+
     ASTNodePtr case_;
     ASTNodePtr body;
 };
@@ -364,7 +364,7 @@ public:
         body->print(indent + 1);
     }
 
-private:
+
     ASTNodePtr body;
 };
 
@@ -399,7 +399,7 @@ public:
         }
     }
 
-private:
+
     std::vector<ASTNodePtr> statements;
 };
 
@@ -421,7 +421,7 @@ public:
         }
     }
 
-private:
+
     std::string name;
     std::variant<ASTNodePtr, std::string> type;
 };
@@ -439,7 +439,7 @@ public:
         }
     }
 
-private:
+
     std::vector<ASTNodePtr> members;
 };
 
@@ -453,7 +453,7 @@ public:
         std::cout << "GlobalVarDecl: " << type << ": " << name << (initByAddr ? " (Address initialised)" : "") << std::endl;
     }
 
-private:
+
     std::string type;
     std::string name;
     bool initByAddr;
@@ -470,7 +470,7 @@ public:
         expression->print(indent + 1);
     }
 
-private:
+
     std::string type;
     std::string name;
     ASTNodePtr expression;
@@ -487,7 +487,7 @@ public:
         std::cout << "Increment: " << variable << std::endl;
     }
 
-private:
+
     std::string variable;
 };
 
@@ -501,7 +501,7 @@ public:
         std::cout << "Decrement: " << variable << std::endl;
     }
 
-private:
+
     std::string variable;
 };
 
@@ -518,7 +518,7 @@ public:
         }
     }
 
-private:
+
     std::vector<ASTNodePtr> prototypes;
 };
 
@@ -537,7 +537,7 @@ public:
         }
     }
 
-private:
+
     std::string returnType;
     std::string name;
     std::vector<ASTNodePtr> parameters;
@@ -553,7 +553,7 @@ public:
         std::cout << "Parameter: " << type << " " << name << std::endl;
     }
 
-private:
+
     std::string type;
     std::string name;
 };
@@ -573,7 +573,7 @@ public:
         }
     }
 
-private:
+
     std::string name;
     std::vector<ASTNodePtr> arguments;
 };
@@ -589,7 +589,7 @@ public:
         body->print(indent + 1);
     }
 
-private:
+
     ASTNodePtr body;
 };
 
@@ -604,7 +604,7 @@ public:
         ifNode->print(indent + 1);
     }
 
-private:
+
     ASTNodePtr ifNode;
 };
 
@@ -623,7 +623,7 @@ public:
         }
     }
 
-private:
+
     std::string name;
     std::vector<ASTNodePtr> arguments;
 };
@@ -637,7 +637,7 @@ public:
         std::cout << "MemoryAddress: " << name << std::endl;
     }
 
-private:
+
     std::string name;
 };
 
@@ -651,7 +651,7 @@ public:
         index->print(indent + 1);
     }
 
-private:
+
     std::string name;
     ASTNodePtr index;
 };
@@ -669,7 +669,7 @@ public:
         std::cout << "Accessing member: " << memberName << std::endl;
     }
 
-private:
+
     ASTNodePtr base;
     std::string memberName;
 };
@@ -686,7 +686,7 @@ public:
         value->print(indent + 1);
     }
 
-private:
+
     ASTNodePtr memberAccess;
     ASTNodePtr value;
 };

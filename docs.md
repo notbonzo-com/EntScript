@@ -89,6 +89,7 @@ In EntS, the memory adress operator, the square brackets can be used in two ways
 - **For switching variable adressing mode**: `[variable]`
 
 When a variable is enclosed is `[]` it can be used for both assigning to change its address or as an expression to evaluate its address.
+It works simulary to the `&` operator in C.
 
 ### Control Flow
 
@@ -127,6 +128,11 @@ function main(void) -> int32 {
     return someValue;
 };
 ```
+
+### Structs
+
+Structs can be declared using the `struct` when defining a new type with typedef followed by block `{}` for the struct's body and its name.
+Members of a struct can be accessed using `->` operator.
 
 ### Headers
 
