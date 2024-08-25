@@ -81,6 +81,15 @@ function sampleFunction(void) -> void {
 };
 ```
 
+### Memory Address Operator `[]`
+
+In EntS, the memory adress operator, the square brackets can be used in two ways.
+
+- **For indexation of variables**: `variable[index]`
+- **For switching variable adressing mode**: `[variable]`
+
+When a variable is enclosed is `[]` it can be used for both assigning to change its address or as an expression to evaluate its address.
+
 ### Control Flow
 
 EntS supports traditional C-style control flow, with minor syntactical differences such as mandatory semicolons after control structures.

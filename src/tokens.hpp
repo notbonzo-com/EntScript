@@ -9,7 +9,7 @@ namespace EntS {
         enum class TokenType {
             FUNCTION, RETURN, VOID, TYPEDEF, STRUCT,
             IF, ELSE, WHILE, SWITCH, CASE, DEFAULT, BREAK, CONTINUE,
-            HEADER, INLINE_ASM,
+            HEADER,
             INT8, INT16, INT32, INT64, UINT8, UINT16, UINT32, UINT64, FLOAT, CHAR, BOOL,
             LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE, LEFT_BRACKET, RIGHT_BRACKET,
             SEMICOLON, COMMA, ASSIGN, EQUAL, NOT_EQUAL, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL,
@@ -81,7 +81,6 @@ namespace EntS {
                 case TokenType::STRING: result = "STRING"; break;
                 case TokenType::EOF_TOKEN: result = "EOF_TOKEN"; break;
                 case TokenType::CHAR_LIT: result = "CHAR_LIT"; break;
-                case TokenType::INLINE_ASM: result = "INLINE_ASM"; break;
             }
 
             return result + " " + value + " " + std::to_string(line) + " " + std::to_string(column);
@@ -142,7 +141,6 @@ namespace EntS {
                 case TokenType::STRING: result = value; break;
                 case TokenType::EOF_TOKEN: result = "EOF_TOKEN"; break;
                 case TokenType::CHAR_LIT: result = value; break;
-                case TokenType::INLINE_ASM: result = value; break;
             }
 
             return result;

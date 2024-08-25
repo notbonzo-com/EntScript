@@ -36,7 +36,6 @@ enum class NodeType {
     Increment,
     Decrement,
     Header,
-    Asm,
     FunctionPrototype,
     Call,
     Else,
@@ -116,7 +115,7 @@ private:
 class VarDeclNode : public ASTNode {
 public:
     VarDeclNode(std::string_view type, std::string_view name, bool initByAddr = false)
-        : ASTNode(NodeType::VarDecl), type(type), name(name) {}
+        : ASTNode(NodeType::VarDecl), type(type), name(name), initByAddr(initByAddr) {}
 
     void print(int indent = 0) const override {
         printIndent(indent);
@@ -132,8 +131,8 @@ private:
 class VarDeclAssignNode : public ASTNode {
 public:
     VarDeclAssignNode(std::string_view type, std::string_view name, ASTNodePtr expression, bool initByAddr = false)
-        : ASTNode(NodeType::VarDeclAssign), type(type), name(name), expression(std::move(expression)) {}
-    
+        : ASTNode(NodeType::VarDeclAssign), type(type), name(name), expression(std::move(expression)), initByAddr(initByAddr) {}
+
     void print(int indent = 0) const override {
         printIndent(indent);
         std::cout << "VarDeclAssign: " << type << ": " << name << (initByAddr ? " (Address initialised)" : "") << std::endl;
@@ -151,7 +150,7 @@ class AssignNode : public ASTNode {
 public:
     AssignNode(std::string_view name, ASTNodePtr expression)
         : ASTNode(NodeType::Assign), name(name), expression(std::move(expression)) {}
-    
+
     void print(int indent = 0) const override {
         printIndent(indent);
         std::cout << "Assign: " << name << std::endl;
@@ -167,7 +166,7 @@ class IndexationAssignNode : public ASTNode {
 public:
     IndexationAssignNode(std::string_view name, ASTNodePtr index, ASTNodePtr expression)
         : ASTNode(NodeType::IndexationAssign), name(name), index(std::move(index)), expression(std::move(expression)) {}
-    
+
     void print(int indent = 0) const override {
         printIndent(indent);
         std::cout << "IndexationAssign: " << name << std::endl;
@@ -185,7 +184,7 @@ class MemoryAssignNode : public ASTNode {
 public:
     MemoryAssignNode(std::string_view name, ASTNodePtr expression)
         : ASTNode(NodeType::MemoryAssign), name(name), expression(std::move(expression)) {}
-    
+
     void print(int indent = 0) const override {
         printIndent(indent);
         std::cout << "MemoryAssign: " << name << std::endl;
@@ -201,7 +200,7 @@ class ReturnNode : public ASTNode {
 public:
     ReturnNode(ASTNodePtr expression)
         : ASTNode(NodeType::Return), expression(std::move(expression)) {}
-    
+
     void print(int indent = 0) const override {
         printIndent(indent);
         std::cout << "Return" << std::endl;
@@ -252,7 +251,7 @@ class LiteralNode : public ASTNode {
 public:
     LiteralNode(std::string_view value)
         : ASTNode(NodeType::Literal), value(value) {}
-    
+
     void print(int indent = 0) const override {
         printIndent(indent);
         std::cout << "Literal: " << value << std::endl;
@@ -266,7 +265,7 @@ class StringLiteralNode : public ASTNode {
 public:
     StringLiteralNode(std::string_view value)
         : ASTNode(NodeType::StringLiteral), value(value) {}
-    
+
     void print(int indent = 0) const override {
         printIndent(indent);
         std::cout << "StringLiteral: " << value << std::endl;
@@ -288,7 +287,7 @@ public:
         condition->print(indent + 1);
         body->print(indent + 1);
         printIndent(indent + 1);
-        std:: cout << "Else" << std::endl;
+        std::cout << "Else" << std::endl;
         printIndent(indent + 1);
         else_->print(indent + 1);
     }
@@ -415,6 +414,7 @@ public:
             std::cout << "Type: ";
             std::get<ASTNodePtr>(type)->print(0);
         } else {
+            printIndent(indent + 1);
             std::cout << "Type: " << std::get<std::string>(type) << std::endl;
         }
     }
@@ -444,7 +444,7 @@ private:
 class GlobalVarDeclNode : public ASTNode {
 public:
     GlobalVarDeclNode(std::string_view type, std::string_view name, bool initByAddr = false)
-        : ASTNode(NodeType::GlobalVarDecl), type(type), name(name) {}
+        : ASTNode(NodeType::GlobalVarDecl), type(type), name(name), initByAddr(initByAddr) {}
 
     void print(int indent = 0) const override {
         printIndent(indent);
@@ -460,7 +460,7 @@ private:
 class GlobalVarDeclAssignNode : public ASTNode {
 public:
     GlobalVarDeclAssignNode(std::string_view type, std::string_view name, ASTNodePtr expression, bool initByAddr = false)
-        : ASTNode(NodeType::GlobalVarDeclAssign), type(type), name(name), expression(std::move(expression)) {}
+        : ASTNode(NodeType::GlobalVarDeclAssign), type(type), name(name), expression(std::move(expression)), initByAddr(initByAddr) {}
 
     void print(int indent = 0) const override {
         printIndent(indent);
@@ -520,20 +520,6 @@ private:
     std::vector<ASTNodePtr> prototypes;
 };
 
-class AsmNode : public ASTNode {
-public:
-    AsmNode(std::string_view asmCode)
-        : ASTNode(NodeType::Asm), asmCode(asmCode) {}
-
-    void print(int indent = 0) const override {
-        printIndent(indent);
-        std::cout << "Asm: " << asmCode << std::endl;
-    }
-
-private:
-    std::string asmCode;
-};
-
 class FunctionPrototypeNode : public ASTNode {
 public:
     FunctionPrototypeNode(std::string_view returnType, std::string_view name, std::vector<ASTNodePtr> parameters)
@@ -563,7 +549,7 @@ public:
     void print(int indent = 0) const override {
         printIndent(indent);
         std::cout << "Parameter: " << type << " " << name << std::endl;
-    }   
+    }
 
 private:
     std::string type;
@@ -624,7 +610,7 @@ class FunctionCallNode : public ASTNode {
 public:
     FunctionCallNode(std::string_view name, std::vector<ASTNodePtr> arguments)
         : ASTNode(NodeType::FunctionCall), name(name), arguments(std::move(arguments)) {}
-        
+
     void print(int indent = 0) const override {
         printIndent(indent);
         std::cout << "FunctionCall: " << name << std::endl;

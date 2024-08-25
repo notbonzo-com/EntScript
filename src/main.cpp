@@ -27,9 +27,11 @@ using namespace EntS;
 
 void printFatal(const char* str) { 
     std::cout << ANSI_BOLD_WHITE << "ents: " << ANSI_BOLD_RED << "fatal error: " << ANSI_RESET << str << "\n" << "compilation terminated.\n"; 
+    exit(1);
 }
 void printError(const char* str) { 
     std::cout << ANSI_BOLD_WHITE << "ents: " << ANSI_BOLD_RED << "error: " << ANSI_RESET << str << "\n"; 
+    exit(1);
 }
 void printWarning(const char* str) { 
     std::cout << ANSI_BOLD_WHITE << "ents: " << ANSI_BOLD_YELLOW << "warning: " << ANSI_RESET << str << "\n"; 
@@ -54,7 +56,6 @@ std::string readFile(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
         printFatal(("could not open file: " + filename).c_str());
-        exit(1);
     }
     std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     return content;
@@ -64,7 +65,6 @@ int main(int argc, char** argv)
 {
     if (argc < 2) {
         printFatal("no input files");
-        return 1;
     }
 
     std::vector<std::string> inputFiles;
@@ -73,16 +73,12 @@ int main(int argc, char** argv)
     OutputFormat outputFormat = OutputFormat::ELF;
 	std::vector<std::string> incPath = { std::string(incDir) };
 
-    std::vector<std::string> checkDirs = { std::string(libDir)+"/crt0.o", std::string(libDir)+"/intlibe.a", std::string(libDir)+"/prog.asm", std::string(libDir)+"/epig.asm" };
+    std::vector<std::string> checkDirs = { std::string(libDir)+"/crt0.o", std::string(libDir)+"/intlibe.a" };
     for (const auto& dir : checkDirs) {
         if (!std::filesystem::exists(dir)) {
             printFatal(("library file not found: " + dir).c_str());
-            return 1;
         }
     }
-    // load the function prologue and epilogue code
-    std::string epilogue = readFile(std::string(libDir) + "/epig.asm");
-    std::string prologue = readFile(std::string(libDir) + "/prog.asm");
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -101,7 +97,6 @@ int main(int argc, char** argv)
             auto formatOpt = outputParsing::getFormat(formatStr);
             if (!formatOpt) {
                 printFatal("invalid format specifier");
-                return 1;
             }
             outputFormat = *formatOpt;
         } else if ((arg == "-I" || arg == "--include") && i + 1 < argc) {
@@ -115,7 +110,6 @@ int main(int argc, char** argv)
 
     if (inputFiles.empty()) {
         printFatal("no input files");
-        return 1;
     }
 
     Preprocessor preprocessor(incPath);
@@ -124,7 +118,6 @@ int main(int argc, char** argv)
         auto preprocessedContent = preprocessor.preprocess(inputFile);
         if (!preprocessedContent) {
             printFatal(("failed to preprocess file: " + inputFile).c_str());
-            return 1;
         }
 
         Lexer lexer(*preprocessedContent);
@@ -133,9 +126,7 @@ int main(int argc, char** argv)
         Parser parser(tokens);
         auto ast = parser.parse();
 
-        CodeGenerator codeGenerator(ast, outputFormat, epilogue, prologue);
-        auto output = codeGenerator.generateCode();
-
+        ast->print(0);
         // write output, assemble etc
     }
 

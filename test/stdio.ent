@@ -1,11 +1,13 @@
 header {
-    function puts(char string) -> char;
     function strrev(char string) -> char;
 };
 
 typedef int8 hello;
 
 function strrev(char string) -> char {
+    char string2;
+    [string2] = [string] + 7;
+    string2 = "Hello World!\n";
     int16 length = 0;
     while ( string[length] != "\0" ) {
         length++;
@@ -36,14 +38,4 @@ function strrev(char string) -> char {
         length--;
     };
     return string;
-};
-
-function puts(char string) -> char {
-    asm {
-        mov rax, 1
-        mov rdi, 1
-        mov rsi, {string}
-        mov rdx, 0
-        syscall
-    };
 };

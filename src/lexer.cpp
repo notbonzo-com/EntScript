@@ -30,7 +30,6 @@ static const std::unordered_map<std::string, Token::TokenType> keywords = {
     {"float", Token::TokenType::FLOAT},
     {"char", Token::TokenType::CHAR},
     {"bool", Token::TokenType::BOOL},
-    {"asm", Token::TokenType::INLINE_ASM}
 };
 
 Lexer::Lexer(std::string_view source)

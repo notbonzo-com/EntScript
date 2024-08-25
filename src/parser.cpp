@@ -1,6 +1,10 @@
 #include "parser.hpp"
 #include "ast.hpp"
 #include <stdexcept>
+#include <sstream>
+
+extern void printFatal(const char* str);
+extern void printError(const char* str);
 
 namespace EntS {
 
@@ -8,19 +12,19 @@ Parser::Parser(const std::vector<Token>& tokens) : tokens(tokens), current(0) {}
 
 const Token& Parser::consume() {
     if (current >= tokens.size()) {
-        throw std::runtime_error("Unexpected end of input");
+        printError("Unexpected end of input");
     }
     return tokens[current++];
 }
 const Token& Parser::peek(int offset) const {
     if (current + offset >= tokens.size()) {
-        throw std::runtime_error("Unexpected end of input");
+        printError("Unexpected end of input");
     }
     return tokens[current + offset];
 }
 const Token& Parser::previous() const {
     if (current == 0) {
-        throw std::runtime_error("No previous token available");
+        printError("No previous token available");
     }
     return tokens[current - 1];
 }
@@ -49,9 +53,9 @@ bool Parser::isType(const std::string& name) {
     return std::find(existing_types.begin(), existing_types.end(), name) != existing_types.end();
 }
 void Parser::error(const Token& token, const std::string& message) {
-    std::cerr << "Error at line " << token.line << ", column " << token.column << " got: " 
-              << token.toString() << ": " << message << std::endl;
-    throw std::runtime_error("Parse error");
+	std::stringstream ss;
+	ss << "[" << token.line << "/" << token.column << ":" << token.toString() << "]: " << message << std::endl;
+	printError(ss.str().c_str());
 }
 
 ASTNodePtr Parser::parse() {
@@ -71,8 +75,6 @@ ASTNodePtr Parser::parse() {
 			} else {
 				error(peek(2), "Expect ';' or '=' after type declaration.");
 			}
-		} else if (check(Token::TokenType::INLINE_ASM)) {
-			statements.push_back(parseAsm());
 		} else {
 			error(peek(), "Expect statement.");
 		}
@@ -254,36 +256,6 @@ ASTNodePtr Parser::parseFunction() {
 	return std::make_unique<FunctionNode>(name, return_value, std::move(parameters), std::move(body));
 }
 
-ASTNodePtr Parser::parseAsm() {
-	std::string asm_source;
-
-	expect(Token::TokenType::INLINE_ASM, "Expect 'asm' keyword.");
-	expect(Token::TokenType::LEFT_BRACE, "Expect '{' after 'asm' keyword.");
-	int depth = 0;
-	while (!check(Token::TokenType::RIGHT_BRACE) || !depth == 0) {
-		if (check(Token::TokenType::LEFT_BRACE)) {
-			depth++;
-			asm_source += '{';
-			consume();
-			continue;
-		} else if (check(Token::TokenType::RIGHT_BRACE)) {
-			depth--;
-			asm_source += '}';
-			consume();
-			continue;
-		}
-		if (peek().type == Token::TokenType::IDENTIFIER) {
-			asm_source += consume().value;
-		} else {
-			asm_source += consume().toSymbol();
-		}
-	}
-
-	expect(Token::TokenType::RIGHT_BRACE, "Expect '}' after inline asm block.");
-	expect(Token::TokenType::SEMICOLON, "Expect ';' after inline asm block.");
-	return std::make_unique<AsmNode>(asm_source);
-}
-
 ASTNodePtr Parser::parseBlock() {
     std::vector<ASTNodePtr> statements;
 
@@ -324,10 +296,6 @@ ASTNodePtr Parser::parseBlock() {
 
 		else if (check(Token::TokenType::SWITCH)) {
 			statements.push_back(parseSwitch());
-		}
-
-		else if (check(Token::TokenType::INLINE_ASM)) {
-			statements.push_back(parseAsm());
 		}
 
         else if (check(Token::TokenType::IDENTIFIER)) {
