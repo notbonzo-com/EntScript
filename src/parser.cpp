@@ -52,6 +52,14 @@ bool Parser::match(std::initializer_list<Token::TokenType> types) {
 bool Parser::isType(const std::string& name) {
     return std::find(existing_types.begin(), existing_types.end(), name) != existing_types.end();
 }
+bool Parser::isStructMember(const std::string& structName, const std::string& memberName) {
+    auto it = structDefinitions.find(structName);
+    if (it != structDefinitions.end()) {
+        const auto& members = it->second;
+        return std::find(members.begin(), members.end(), memberName) != members.end();
+    }
+    return false;
+}
 void Parser::error(const Token& token, const std::string& message) {
 	std::stringstream ss;
 	ss << "[" << token.line << "/" << token.column << ":" << token.toString() << "]: " << message << std::endl;
@@ -160,7 +168,9 @@ ASTNodePtr Parser::parseTypedef() {
 		}
 		old_type = old_typel;
 	}
-
+	if (peek().type != Token::TokenType::IDENTIFIER) {
+		error(peek(), "Anonymous structs are not supported.");
+	}
 	new_type = consume().value;
 	if (isType(new_type)) {
 		error(previous(), "Can not redefine type");
@@ -169,30 +179,42 @@ ASTNodePtr Parser::parseTypedef() {
 	existing_types.push_back(new_type);
 	return std::make_unique<TypedefNode>(new_type, std::move(old_type));
 }
+
 ASTNodePtr Parser::parseStruct() {
-	std::vector<ASTNodePtr> members;
-	expect(Token::TokenType::STRUCT, "Expect 'struct' keyword.");
-	expect(Token::TokenType::LEFT_BRACE, "Expect '{' after 'struct' keyword.");
+    std::vector<ASTNodePtr> members;
+    std::vector<std::string> memberNames;
 
-	std::vector<std::string> used_names;
-	while (!check(Token::TokenType::RIGHT_BRACE) && !check(Token::TokenType::EOF_TOKEN)) {
-		std::string type;
-		std::string name;
+    expect(Token::TokenType::STRUCT, "Expect 'struct' keyword.");
+    expect(Token::TokenType::LEFT_BRACE, "Expect '{' after 'struct' keyword.");
 
-		type = consume().value;
-		if (!isType(type)) {
-			error(previous(), "Expect struct member type.");
-		}
+    std::vector<std::string> used_names;
+    while (!check(Token::TokenType::RIGHT_BRACE) && !check(Token::TokenType::EOF_TOKEN)) {
+        std::string type;
+        std::string name;
 
-		name = consume().value;
-		if (used_names.end() != std::find(used_names.begin(), used_names.end(), name)) {
-			error(previous(), "Duplicated struct member name.");
-		}
-		used_names.push_back(name);
-		members.push_back(std::make_unique<ParameterNode>(type, name));
+        type = consume().value;
+        if (!isType(type)) {
+            error(previous(), "Expect struct member type.");
+        }
+
+        name = consume().value;
+        if (used_names.end() != std::find(used_names.begin(), used_names.end(), name)) {
+            error(previous(), "Duplicated struct member name.");
+        }
+        used_names.push_back(name);
+        members.push_back(std::make_unique<ParameterNode>(type, name));
+        memberNames.push_back(name);
+        expect(Token::TokenType::SEMICOLON, "Expect ';' after struct member.");
+    }
+    expect(Token::TokenType::RIGHT_BRACE, "Expect '}' after struct members.");
+
+	if (peek().type != Token::TokenType::IDENTIFIER) {
+		error(peek(), "Anonymous structs are not supported.");
 	}
-	expect(Token::TokenType::RIGHT_BRACE, "Expect '}' after struct members.");
-	return std::make_unique<StructNode>(std::move(members));
+
+    structDefinitions[peek().value] = memberNames;
+
+    return std::make_unique<StructNode>(std::move(members));
 }
 
 ASTNodePtr Parser::parseFunction() {
@@ -300,7 +322,6 @@ ASTNodePtr Parser::parseBlock() {
 
         else if (check(Token::TokenType::IDENTIFIER)) {
             if (existing_variables.end() != std::find(existing_variables.begin(), existing_variables.end(), peek().value)) {
-                
                 if (peek(1).type == Token::TokenType::PLUS && peek(2).type == Token::TokenType::PLUS) {
                     statements.push_back(std::make_unique<IncrementNode>(peek().value));
                     consume(); consume(); consume(); // consume identifier and '++'
@@ -327,9 +348,29 @@ ASTNodePtr Parser::parseBlock() {
                     ASTNodePtr value = parseExpression();
                     expect(Token::TokenType::SEMICOLON, "Expect ';' after indexation assignment.");
                     statements.push_back(std::make_unique<IndexationAssignNode>(name, std::move(index), std::move(value)));
-                } else {
-                    error(peek(1), "Unexpected token after identifier.");
-                }
+				}
+				else if (peek(1).type == Token::TokenType::MINUS && peek(2).type == Token::TokenType::GREATER) {
+					std::string name = consume().value;
+					// printf("\n``\n%s\n``\n", name.c_str());
+					ASTNodePtr current = std::make_unique<IdentifierNode>(name);
+					expect(Token::TokenType::MINUS, "Expect '->' after parent name.");
+					expect(Token::TokenType::GREATER, "Expect '->' after parent name.");
+					std::string memberName = consume().value;
+					current = std::make_unique<StructMemberAccessNode>(std::move(current), memberName);
+
+					while (match({Token::TokenType::MINUS}) && match({Token::TokenType::GREATER})) {
+						memberName = consume().value;
+						current = std::make_unique<StructMemberAccessNode>(std::move(current), memberName);
+					}
+
+					expect(Token::TokenType::ASSIGN, "Expect '=' after struct member name.");
+					ASTNodePtr expr = parseExpression();
+					expect(Token::TokenType::SEMICOLON, "Expect ';' after struct member assignment.");
+
+					statements.push_back(std::make_unique<StructMemberAssignNode>(std::move(current), std::move(expr)));
+				} else {
+					error(peek(1), "Unexpected token after identifier.");
+				}
             } 
             else if (existing_functions.end() != std::find(existing_functions.begin(), existing_functions.end(), peek().value)) {
                 statements.push_back(parseFunctionCall());
@@ -693,6 +734,8 @@ ASTNodePtr Parser::parseIdentifier() {
     std::string name = previous().value;
     if (match({Token::TokenType::LEFT_BRACKET})) {
         return parseIndexing(name);
+    } else if (match({Token::TokenType::MINUS}) && match({Token::TokenType::GREATER})) {
+        return parseStructMemberAccess(name);
     } else if (existing_variables.end() != std::find(existing_variables.begin(), existing_variables.end(), name)) {
         return std::make_unique<IdentifierNode>(name);
     } else if (existing_functions.end() != std::find(existing_functions.begin(), existing_functions.end(), name)) {
@@ -726,5 +769,24 @@ ASTNodePtr Parser::parseMemoryAddressing() {
     expect(Token::TokenType::RIGHT_BRACKET, "Expect ']' after variable name.");
     return std::make_unique<MemoryAddressNode>(name);
 }
+ASTNodePtr Parser::parseStructMemberAccess(const std::string& structName) {
+    ASTNodePtr current = std::make_unique<IdentifierNode>(structName);
+
+    std::string memberName = consume().value;
+    current = std::make_unique<StructMemberAccessNode>(std::move(current), memberName);
+
+    while (match({Token::TokenType::MINUS}) && match({Token::TokenType::GREATER})) {
+        memberName = consume().value;
+
+        if (!isStructMember(structName, memberName)) {
+            error(previous(), "Undefined struct member.");
+        }
+
+        current = std::make_unique<StructMemberAccessNode>(std::move(current), memberName);
+    }
+
+    return current;
+}
+
 
 } // namespace EntS

@@ -47,6 +47,8 @@ enum class NodeType {
     StringLiteral,
     Index,
     MemoryAddress,
+    StructMemberAccess,
+    StructMemberAssign,
 };
 
 class ASTNode {
@@ -652,6 +654,41 @@ public:
 private:
     std::string name;
     ASTNodePtr index;
+};
+
+class StructMemberAccessNode : public ASTNode {
+public:
+    StructMemberAccessNode(ASTNodePtr base, const std::string& memberName)
+        : ASTNode(NodeType::StructMemberAccess), base(std::move(base)), memberName(memberName) {}
+
+    void print(int indent = 0) const override {
+        printIndent(indent);
+        std::cout << "StructMemberAccess: " << std::endl;
+        base->print(indent + 1);
+        printIndent(indent + 2);
+        std::cout << "Accessing member: " << memberName << std::endl;
+    }
+
+private:
+    ASTNodePtr base;
+    std::string memberName;
+};
+
+class StructMemberAssignNode : public ASTNode {
+public:
+    StructMemberAssignNode(ASTNodePtr memberAccess, ASTNodePtr value)
+        : ASTNode(NodeType::StructMemberAssign), memberAccess(std::move(memberAccess)), value(std::move(value)) {}
+
+    void print(int indent = 0) const override {
+        printIndent(indent);
+        std::cout << "StructMemberAssign: " << std::endl;
+        memberAccess->print(indent + 1);
+        value->print(indent + 1);
+    }
+
+private:
+    ASTNodePtr memberAccess;
+    ASTNodePtr value;
 };
 
 } // namespace EntS

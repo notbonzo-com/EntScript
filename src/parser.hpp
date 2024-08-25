@@ -37,6 +37,7 @@ private:
 
     ASTNodePtr parseBlock();
     ASTNodePtr parseHeader();
+    ASTNodePtr parseStructMemberAccess(const std::string& structName);
 
     ASTNodePtr parseExpression();
     ASTNodePtr parseParenExpression();
@@ -89,8 +90,10 @@ private:
     std::vector<std::string> prototypes;
     std::vector<std::string> scoped;
     std::vector<std::string> existing_variables;
+    std::unordered_map<std::string, std::vector<std::string>> structDefinitions;
 
     bool isType(const std::string& name);
+    bool isStructMember(const std::string& structName, const std::string& memberName);
 };
 
 } // namespace EntS

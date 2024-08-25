@@ -4,6 +4,20 @@ header {
 
 typedef int8 hello;
 
+typedef struct {
+    int8 a;
+    int8 b;
+    int8 c;
+} vector3d;
+
+function test() -> vector3d {
+    vector3d vector;
+    vector->a = 1;
+    vector->b = 2;
+    vector->c = 3;
+    return vector;
+};
+
 function strrev(char string) -> char {
     char string2;
     [string2] = [string] + 7;
