@@ -3,19 +3,6 @@
 #include <string>
 #include <vector>
 #include <filesystem>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/LegacyPassManager.h>
-#include <llvm/Bitcode/BitcodeWriter.h>
-#include <llvm/IR/Verifier.h>
-#include <llvm/Support/TargetSelect.h>
-#include <llvm/Support/Host.h>
-#include <llvm/Support/raw_ostream.h>
-#include <llvm/Support/FileSystem.h>
-#include <llvm/Target/TargetMachine.h>
-#include <llvm/Target/TargetOptions.h>
-#include <llvm/MC/TargetRegistry.h>
 
 #include "preprocessor.hpp"
 #include "lexer.hpp"
@@ -123,24 +110,6 @@ int main(int argc, char** argv) {
         printFatal("no input files");
     }
 
-    LLVMInitializeX86TargetInfo();
-    LLVMInitializeX86Target();
-    LLVMInitializeX86TargetMC();
-    LLVMInitializeX86AsmPrinter();
-    LLVMInitializeX86AsmParser();
-
-    std::string targetTriple = llvm::sys::getDefaultTargetTriple();
-    std::string error;
-    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(targetTriple, error);
-
-    if (!target) {
-        printFatal(("Could not find target: " + error).c_str());
-    }
-
-    llvm::TargetOptions opt;
-    auto RM = llvm::Optional<llvm::Reloc::Model>();
-    llvm::TargetMachine* TM = target->createTargetMachine(targetTriple, "generic", "", opt, RM);
-
     for (const auto& inputFile : inputFiles) {
         Preprocessor preprocessor(incPath);
         auto preprocessedContent = preprocessor.preprocess(inputFile);
@@ -154,41 +123,8 @@ int main(int argc, char** argv) {
         Parser parser(tokens);
         auto ast = parser.parse();
 
-        CodeGenerator codeGen(inputFile, parser.getTypedefs());
-        llvm::Module* module = codeGen.generateCode(ast);
 
-        if (!module) {
-            printFatal("failed to generate code");
-        }
-
-        module->setDataLayout(TM->createDataLayout());
-        module->setTargetTriple(targetTriple);
-
-        llvm::legacy::PassManager pass;
-
-        std::error_code EC;
-        llvm::raw_fd_ostream dest(outputFile, EC, llvm::sys::fs::OF_None);
-
-        if (EC) {
-            printFatal(("could not open output file: " + outputFile).c_str());
-        }
-
-        if (generateAssemblyOnly) {
-            if (TM->addPassesToEmitFile(pass, dest, nullptr, llvm::CGFT_AssemblyFile)) {
-                printFatal("target does not support generation of assembly files");
-            }
-        } else {
-            if (outputFormat == OutputFormat::ELF) {
-                llvm::WriteBitcodeToFile(*module, dest);
-            } else if (outputFormat == OutputFormat::OBJ) {
-                if (TM->addPassesToEmitFile(pass, dest, nullptr, llvm::CGFT_ObjectFile)) {
-                    printFatal("target does not support generation of object files");
-                }
-            }
-        }
-
-        pass.run(*module);
+        ast->print();
     }
-
     return 0;
 }

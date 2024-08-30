@@ -10,9 +10,6 @@ GREEN = \033[0;32m
 YELLOW = \033[0;33m
 NC = \033[0m
 
-LLVM_CFLAGS := -I/usr/lib/llvm-14/include -fno-exceptions -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS
-LLVM_LDFLAGS := `llvm-config --ldflags --system-libs --libs core`
-
 SRC_FILES := $(wildcard $(SRC_DIR)/*.cpp)
 OBJ_FILES := $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRC_FILES))
 
@@ -22,11 +19,11 @@ all: $(BUILD_DIR) compiler
 
 compiler: $(OBJ_FILES)
 	@echo "$(GREEN)Linking compiler$(NC)"
-	@$(CC) -o $(ROOT)/ent $(OBJ_FILES) $(LLVM_LDFLAGS) -g -fsanitize=address,undefined
+	@$(CC) -o $(ROOT)/ent $(OBJ_FILES) -g -fsanitize=address,undefined
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 	@echo "$(GREEN)Compiling $@$(NC)"
-	@$(CC) -c -o $@ $< -std=c++23 -DSYSROOT=\"$(SYSROOT)\" $(LLVM_CFLAGS) -g -fsanitize=address,undefined
+	@$(CC) -c -o $@ $< -std=c++23 -DSYSROOT=\"$(SYSROOT)\" -g -fsanitize=address,undefined
 
 clean:
 	@clear

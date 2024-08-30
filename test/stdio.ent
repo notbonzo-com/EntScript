@@ -4,39 +4,39 @@ header {
 
 typedef int8 hello;
 
-//
-//typedef struct {
-//    int8 a;
-//    int8 b;
-//    int8 c;
-//} vector3d;
-//
-//typedef struct {
-//    vector3d vector;
-//    int8 r;
-//    int8 b;
-//    int8 g;
-//} mesh3d;
-//
-//function test() -> mesh3d {
-//    vector3d vector;
-//    mesh3d mesh;
-//    vector->a = 1;
-//    vector->b = 2;
-//    vector->c = 3;
-//    mesh->vector = vector;
-//    mesh->r = 1;
-//    mesh->b = 2;
-//    mesh->g = 3;
-//    return mesh;
-//};
-//
+typedef struct {
+    int8 a;
+    int8 b;
+    int8 c;
+} vector3d;
+
+typedef struct {
+    vector3d vector;
+    int8 r;
+    int8 b;
+    int8 g;
+} mesh3d;
+
+function test() -> mesh3d {
+    vector3d vector;
+    mesh3d mesh;
+    vector->a = 1;
+    vector->b = 2;
+    vector->c = 3;
+    mesh->vector = vector;
+    mesh->r = 1;
+    mesh->b = 2;
+    mesh->g = 3;
+    return mesh;
+};
 
 function strrev(char string) -> char {
-    //char string2;
-    //[string2] = [string] + 7;
-    //string2 = "Hello World!\n";
-    
+    mesh3d mesh = test();
+    mesh->vector->a = 1;
+
+    char string2;
+    [string2] = [string] + 7;
+    string2 = "Hello World!\n";
     int16 length = 0;
     while ( string[length] != "\0" ) {
         length++;

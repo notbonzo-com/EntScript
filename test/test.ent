@@ -1,0 +1,7 @@
+
+
+function test() -> int32 {
+	int32 a = 1;
+	int64 b = 4 * ( a + 1 );
+	return b;
+};

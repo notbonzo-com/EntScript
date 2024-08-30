@@ -790,7 +790,7 @@ ASTNodePtr Parser::parsePrimary() {
         return parseLiteral();
     }
 
-    if (match({Token::TokenType::LEFT_PAREN})) {
+    if (check(Token::TokenType::LEFT_PAREN)) {
         return parseParenExpression();
     }
 
