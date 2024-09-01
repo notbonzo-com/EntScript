@@ -51,6 +51,50 @@ enum class NodeType {
     StructMemberAssign,
 };
 
+static inline std::string toString(NodeType type) {
+    switch (type) {
+        case NodeType::Program: return "Program";
+        case NodeType::Function: return "Function";
+        case NodeType::VarDecl: return "VarDecl";
+        case NodeType::VarDeclAssign: return "VarDeclAssign";
+        case NodeType::Assign: return "Assign";
+        case NodeType::IndexationAssign: return "IndexationAssign";
+        case NodeType::MemoryAssign: return "MemoryAssign";
+        case NodeType::Return: return "Return";
+        case NodeType::Expression: return "Expression";
+        case NodeType::If: return "If";
+        case NodeType::While: return "While";
+        case NodeType::For: return "For";
+        case NodeType::Switch: return "Switch";
+        case NodeType::Case: return "Case";
+        case NodeType::Default: return "Default";
+        case NodeType::Continue: return "Continue";
+        case NodeType::Break: return "Break";
+        case NodeType::Block: return "Block";
+        case NodeType::Typedef: return "Typedef";
+        case NodeType::Struct: return "Struct";
+        case NodeType::GlobalVarDecl: return "GlobalVarDecl";
+        case NodeType::GlobalVarDeclAssign: return "GlobalVarDeclAssign";
+        case NodeType::Increment: return "Increment";
+        case NodeType::Decrement: return "Decrement";
+        case NodeType::Header: return "Header";
+        case NodeType::FunctionPrototype: return "FunctionPrototype";
+        case NodeType::Call: return "Call";
+        case NodeType::Else: return "Else";
+        case NodeType::Elseif: return "Elseif";
+        case NodeType::Parameter: return "Parameter";
+        case NodeType::FunctionCall: return "FunctionCall";
+        case NodeType::Identifier: return "Identifier";
+        case NodeType::Literal: return "Literal";
+        case NodeType::StringLiteral: return "StringLiteral";
+        case NodeType::Index: return "Index";
+        case NodeType::MemoryAddress: return "MemoryAddress";
+        case NodeType::StructMemberAccess: return "StructMemberAccess";
+        case NodeType::StructMemberAssign: return "StructMemberAssign";
+    }
+    return "";
+}
+
 class ASTNode {
 public:
     explicit ASTNode(NodeType type) : type(type) {}
@@ -289,9 +333,11 @@ public:
         condition->print(indent + 1);
         body->print(indent + 1);
         printIndent(indent + 1);
-        std::cout << "Else" << std::endl;
-        printIndent(indent + 1);
-        else_->print(indent + 1);
+        if (else_) {
+            std::cout << "Else" << std::endl;
+            printIndent(indent + 1);
+            else_->print(indent + 1);
+        }
     }
 
 
@@ -617,6 +663,9 @@ public:
         printIndent(indent);
         std::cout << "FunctionCall: " << name << std::endl;
         printIndent(indent + 1);
+        if (arguments.empty()) {
+            return;
+        }
         std::cout << "arguments:" << std::endl;
         for (const auto& arg : arguments) {
             arg->print(indent + 2);

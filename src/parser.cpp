@@ -336,9 +336,7 @@ ASTNodePtr Parser::parseFunction() {
 }
 
 ASTNodePtr Parser::parseBlock() {
-    std::vector<ASTNodePtr> statements;
-
-    // Enter a new scope for the block
+    std::vector<ASTNodePtr> statements = std::vector<ASTNodePtr>();
     enterScope();
 
     while (!check(Token::TokenType::RIGHT_BRACE) && !check(Token::TokenType::EOF_TOKEN)) {
@@ -650,24 +648,30 @@ ASTNodePtr Parser::parseIf() {
     expect(Token::TokenType::LEFT_BRACE, "Expect '{' after 'if' condition.");
     ASTNodePtr then_branch = parseBlock();
     expect(Token::TokenType::RIGHT_BRACE, "Expect '}' after 'if' block.");
+    
     ASTNodePtr else_branch = nullptr;
+
     if (match({Token::TokenType::ELSE})) {
         if (check(Token::TokenType::IF)) {
-            else_branch = parseIf();
+            else_branch = parseIf(); // Recursively parse 'else if'
+            return std::make_shared<IfNode>(std::move(condition), std::move(then_branch), std::move(else_branch));
         } else {
             expect(Token::TokenType::LEFT_BRACE, "Expect '{' after 'else' keyword.");
             else_branch = parseBlock();
             expect(Token::TokenType::RIGHT_BRACE, "Expect '}' after 'else' block.");
         }
     }
-    expect(Token::TokenType::SEMICOLON, "Expect ';' after 'if' block.");
+
+    expect(Token::TokenType::SEMICOLON, "Expect ';' after 'if' statement.");
+
     return std::make_shared<IfNode>(std::move(condition), std::move(then_branch), std::move(else_branch));
 }
+
 
 ASTNodePtr Parser::parseFunctionCall() {
     std::string name = consume().value;
     expect(Token::TokenType::LEFT_PAREN, "Expect '(' after function name.");
-    std::vector<ASTNodePtr> args;
+    std::vector<ASTNodePtr> args = std::vector<ASTNodePtr>();
     if (!check(Token::TokenType::RIGHT_PAREN)) {
         args.push_back(parseExpression());
         while (match({Token::TokenType::COMMA})) {
@@ -804,6 +808,10 @@ ASTNodePtr Parser::parsePrimary() {
 
     if (match({Token::TokenType::LEFT_BRACKET})) {  // For memory addressing `[variable]`
         return parseMemoryAddressing();
+    }
+
+    if (match({Token::TokenType::CHAR_LIT})) {
+        return parseLiteral();
     }
 
     error(peek(), "Expect expression.");

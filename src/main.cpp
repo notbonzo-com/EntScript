@@ -123,8 +123,14 @@ int main(int argc, char** argv) {
         Parser parser(tokens);
         auto ast = parser.parse();
 
-
         ast->print();
+        CodeGenerator codeGenerator(parser.getTypedefs(), parser.getStructs());
+        codeGenerator.generateCode(ast);
+        std::string assemble = codeGenerator.getGeneratedCode();
+
+        printf("\n\n");
+
+        std::cout << "Assembly:\n" << assemble << "\n\n";
     }
     return 0;
 }

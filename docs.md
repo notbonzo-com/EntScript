@@ -18,7 +18,7 @@
 
 ## Introduction
 
-EntS (short for Enlightened Script) is a programming language inspired by C, with several syntactic changes tailored for a more intuitive development experience. This documentation provides an overview of EntS syntax, functions, variables, memory handling, control flow, and preprocessor directives.
+EntS (short for Enlightened Script) is a programming language inspired by C, with several syntactic changes tailored for a less intuitive development experience. This documentation provides an overview of EntS syntax, functions, variables, memory handling, control flow, and preprocessor directives.
 
 ---
 
@@ -90,6 +90,8 @@ In EntS, the memory adress operator, the square brackets can be used in two ways
 
 When a variable is enclosed is `[]` it can be used for both assigning to change its address or as an expression to evaluate its address.
 It works simulary to the `&` operator in C.
+When a global variable is initialised by memory, a C like pointer will be allocated in the bss section, of 8 bytes.
+When a local variable is initialised by memory, a C like pointer will be allocated on the stack.
 
 ### Control Flow
 

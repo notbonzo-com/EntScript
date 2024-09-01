@@ -22,6 +22,9 @@ public:
     std::unordered_map<std::string, std::string> getTypedefs() const {
         return typedefs;
     }
+    std::unordered_map<std::string, std::vector<std::string>> getStructs() const {
+        return structDefinitions;
+    }
 
 private:
     const Token& consume(); // returns reference to token, and increments
